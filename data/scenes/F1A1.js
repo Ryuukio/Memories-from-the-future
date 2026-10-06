@@ -53,9 +53,9 @@ SCENES.F1A1 = {
   ],
 
   guards: [
-    // o Fabio do passado, mexendo na chapa (cone curto, para a chapa)
+    // o Fabio do passado, mexendo na chapa (cone para a chapa; de vez em quando olha um pouco para baixo)
     { who: 'FABIO_F1', x: 146, y: 88, pose: 'sit', face: 'right', chair: true, anim: 'cook',
-      look: 0, range: 30, half: 22,
+      look: 0, range: 60, half: 30,
       loop: [
         { t: 1.4 },
         { t: 0.5, look: 25 },
