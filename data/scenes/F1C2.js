@@ -32,12 +32,14 @@ SCENES.F1C2 = {
   ],
 
   guards: [
+    // Loop de 6,7 s: olham o parque (3,4 s; os cones andam da esquerda para a direita, junto com
+    // quem passa) → se beijam de olhos fechados (3 s, a janela). As árvores tapam a visão.
     // o Fabio do passado, à esquerda no banco
     { who: 'FABIO_F1', x: 186, y: 70, pose: 'sit', face: 'down',
       look: 90, range: 120, half: 26,
       loop: [
-        { t: 1.5, look: 65 },                                            // olha o parque
-        { t: 1.5, look: 115 },
+        { t: 1.6, look: 120 },                                           // olha o parque
+        { t: 1.8, look: 70 },
         { t: 0.3, head: 'right', eyes: 'closed', cone: false },         // o beijo
         { t: 2.7 },
         { t: 0.3, head: null, eyes: 'open', cone: true, look: 90 }
@@ -46,8 +48,8 @@ SCENES.F1C2 = {
     { who: 'ELLEN_F1', x: 198, y: 70, pose: 'sit', face: 'down',
       look: 90, range: 120, half: 26, heartAt: [-6, -36],
       loop: [
-        { t: 1.5, look: 115 },
-        { t: 1.5, look: 65 },
+        { t: 1.6, look: 110 },
+        { t: 1.8, look: 60 },
         { t: 0.3, head: 'left', eyes: 'closed', cone: false, fx: 'heart' },
         { t: 2.7 },
         { t: 0.3, head: null, eyes: 'open', cone: true, fx: null, look: 90 }

@@ -373,7 +373,8 @@ const StealthState = (() => {
           const at = g.def.heartAt || [0, -34];
           Guard.hearts(ctx, g.x + at[0], g.y + at[1], time);
         }
-        Guard.bubble(ctx, g.x, g.y - (g.pose === 'lie' ? 34 : 31), g.stage(), time);
+        const top = g.headTop();
+        Guard.bubble(ctx, top.x, top.y, g.stage(), time);
       });
       if (Debug.flags.boxes) drawDebug(ctx);
       ctx.restore();

@@ -36,28 +36,29 @@ SCENES.F1A2 = {
   ],
 
   guards: [
-    // o Fabio do passado: olha a torre; vira primeiro, pelo lado esquerdo
+    // Loop de 12 s: o Fabio vira aos 2 s, a Ellen aos 8 s. Cada um passa ~3 s olhando o caminho
+    // (o cone anda da esquerda para a direita, junto com quem passa); entre uma virada e outra, os
+    // dois olham a torre (janela de ~2,6 s). Andando reto sem olhar, ela é pega em ~1 de 8 vezes.
+    // o Fabio do passado: olha a torre; vira pelo lado esquerdo
     { who: 'FABIO_F1', x: 182, y: 86, pose: 'sit', face: 'up',
       look: 270, range: 56, half: 24,
       loop: [
-        { t: 3.0 },                                   // os dois olham a torre
-        { t: 0.6, look: 125, range: 104, half: 26 },  // vira para trás
-        { t: 1.3, look: 70 },                         // olha o caminho
-        { t: 0.6 },
-        { t: 0.6, look: 270, range: 56, half: 24 },   // volta para a torre
-        { t: 5.9 }
+        { t: 2.0 },                                   // os dois olham a torre
+        { t: 0.5, look: 130, range: 104, half: 30 },  // vira para trás
+        { t: 2.4, look: 70 },                         // olha o caminho
+        { t: 0.5, look: 270, range: 56, half: 24 },   // volta para a torre
+        { t: 6.6 }
       ] },
 
-    // a Ellen do passado: vira depois, pelo lado direito
+    // a Ellen do passado: vira pelo lado direito
     { who: 'ELLEN_F1', x: 206, y: 86, pose: 'sit', face: 'up',
       look: 270, range: 56, half: 24,
       loop: [
-        { t: 6.4 },
-        { t: 0.6, look: 55, range: 104, half: 26 },
-        { t: 1.3, look: 110 },
-        { t: 0.6 },
-        { t: 0.6, look: 270, range: 56, half: 24 },
-        { t: 2.5 }
+        { t: 8.0 },
+        { t: 0.5, look: 115, range: 104, half: 30 },
+        { t: 2.4, look: 55 },
+        { t: 0.5, look: 270, range: 56, half: 24 },
+        { t: 0.6 }
       ] }
   ]
 };

@@ -130,13 +130,16 @@
   };
 
   // Porta no fim do corredor: abre quando a Ellen chega perto e deixa a luz da próxima memória
-  // entrar. locked: true = a porta por onde ela entrou (fica fechada).
+  // entrar. locked: true = a porta por onde ela entrou (fica fechada). A abertura anda pelo
+  // relógio do jogo (world.t), não pelos quadros desenhados: leva 0,2 s em qualquer tela.
   props.hallDoor = {
     size: () => [8, 40],
     base: 0,
     live(ctx, p, world) {
       const e = world.ellen, near = !p.locked && e && Math.abs(e.x - (p.x + 4)) < 46 && Math.abs(e.y - (p.y + 24)) < 36;
-      p.open = Math.max(0, Math.min(1, (p.open || 0) + (near ? 0.08 : -0.08)));
+      const dt = p.lastT === undefined ? 0 : Math.max(0, Math.min(0.1, world.t - p.lastT));
+      p.lastT = world.t;
+      p.open = Math.max(0, Math.min(1, (p.open || 0) + (near ? dt : -dt) / 0.2));
       if (p.open > 0 && !p.wasOpen) Sound.sfx('door');
       p.wasOpen = p.open > 0.5 ? true : p.open <= 0 ? false : p.wasOpen;
       const x = p.x, y = p.y, k = p.open;

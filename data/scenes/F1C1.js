@@ -74,28 +74,29 @@ SCENES.F1C1 = {
   ],
 
   guards: [
+    // Loop de 14 s: conversam olhando um para o outro (janela); de vez em quando um deles olha as
+    // máquinas do drink bar por 3 s, e o cone atravessa o corredor da esquerda para a direita.
+    // O garçom tapa a visão: dá para atravessar escondida atrás dele.
     // o Fabio do passado: conversa com a Ellen; de vez em quando olha o drink bar
     { who: 'FABIO_F1', x: 172, y: 174, pose: 'sit', face: 'right', anim: 'eat',
       look: 0, range: 36, half: 18,
       loop: [
-        { t: 3.6 },                                   // olha a Ellen (janela)
-        { t: 0.5, look: 300, range: 124, half: 22 },  // olha o drink bar
-        { t: 1.2, look: 262 },
-        { t: 0.3 },
+        { t: 2.0 },                                   // olha a Ellen (janela)
+        { t: 0.5, look: 240, range: 130, half: 34 },  // olha o drink bar
+        { t: 3.0, look: 290 },
         { t: 0.5, look: 0, range: 36, half: 18 },
-        { t: 5.9 }
+        { t: 8.0 }
       ] },
 
     // a Ellen do passado: o mesmo, na outra metade do loop
     { who: 'ELLEN_F1', x: 214, y: 174, pose: 'sit', face: 'left', anim: 'eat',
       look: 180, range: 36, half: 18,
       loop: [
-        { t: 9.1 },
-        { t: 0.5, look: 240, range: 124, half: 22 },
-        { t: 1.2, look: 280 },
-        { t: 0.3 },
+        { t: 7.5 },
+        { t: 0.5, look: 240, range: 130, half: 34 },
+        { t: 3.0, look: 290 },
         { t: 0.5, look: 180, range: 36, half: 18 },
-        { t: 0.4 }
+        { t: 2.5 }
       ] }
   ]
 };

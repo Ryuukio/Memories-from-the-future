@@ -116,7 +116,8 @@ const Room = (() => {
 
   // sprite de um NPC parado (com a pequena animação de comer, se tiver)
   function npcSprite(n, t) {
-    if (n.pose === 'lie') return Chars.sprite(n.who, { pose: 'lie', head: n.head || 'down', eyes: n.eyes });
+    if (n.pose === 'lie') return Chars.sprite(n.who, { pose: 'lie', dir: n.dir === 'right' ? 'right' : 'left', head: n.head, eyes: n.eyes });
+    if (n.pose === 'floor') return Chars.sprite(n.who, { pose: 'floor', dir: 'down', head: n.head, eyes: n.eyes });
     if (n.pose !== 'sit') return Chars.sprite(n.who, { dir: n.dir, head: n.head });
     const frame = n.anim === 'eat' && Math.floor((t + (n.x % 7) * 0.31) / 0.6) % 3 === 0 ? 1 : 0;
     return Chars.sprite(n.who, { pose: n.pose, dir: n.dir, head: n.head, frame });

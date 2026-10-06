@@ -657,6 +657,23 @@ Object.assign(window.SPRITES, {
     "................",
     "................",
   ],
+  // sentado no chão de pernas cruzadas, de frente (na cama do planetário); 14 linhas
+  BODY_FLOOR_SIT: [
+    "...ouuussuuuo...",
+    "..ouuuuuuuuuuo..",
+    ".oaAQcccccccAao.",
+    ".oaAccccccccAao.",
+    ".oaAccccccccAao.",
+    ".oaAccccccccAao.",
+    ".ossCccccccCsso.",
+    ".ossCccccccCsso.",
+    ".oSSoccccccoSSo.",
+    "..oopppppppPoo..",
+    ".oppppppppppppPo",
+    "onnnnNpppPnnnnNo",
+    ".oonnNffffnnNoo.",
+    "...oooooooooo...",
+  ],
   // sentado de lado com o antebraço 1 px mais à frente (mexendo na chapa, comendo)
   BODY_SIT_REACH: [
     "...oQcuuuuo.....",

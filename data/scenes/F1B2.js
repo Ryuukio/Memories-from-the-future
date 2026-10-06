@@ -20,54 +20,62 @@ SCENES.F1B2 = {
 
   props: [
     { type: 'domeStars', x: 0, y: 0 },
-    { type: 'roundBed', x: 36, y: 48 },
-    { type: 'roundBed', x: 160, y: 54 },      // a cama do casal
-    { type: 'roundBed', x: 296, y: 50 },
-    { type: 'roundBed', x: 56, y: 140 },
+    { type: 'roundBed', x: 32, y: 48 },
+    { type: 'roundBed', x: 160, y: 54 },                      // a cama do casal
+    { type: 'roundBed', x: 294, y: 50, pillows: 'right' },
+    { type: 'roundBed', x: 52, y: 140, pillows: 'right' },
     { type: 'roundBed', x: 172, y: 146 },
-    { type: 'roundBed', x: 280, y: 136 }
+    { type: 'roundBed', x: 286, y: 136 }
   ],
 
-  // os outros casais, deitados olhando o céu (um deles também se beijando)
+  // os outros casais, deitados olhando o céu (um deles também se beijando). Em cada cama, quem
+  // deita em cima fica em (x + 34, y + 21) e quem deita embaixo em (x + 34, y + 34).
   npcs: [
-    { who: 'CUSTOMER_GREEN', pose: 'lie', x: 60, y: 84 },
-    { who: 'CUSTOMER_TEAL', pose: 'lie', x: 76, y: 84 },
-    { who: 'CUSTOMER_RED', pose: 'lie', x: 320, y: 86, head: 'right', eyes: 'closed' },
-    { who: 'CUSTOMER_LILAC', pose: 'lie', x: 336, y: 86, head: 'left', eyes: 'closed' },
-    { who: 'CUSTOMER_BEIGE', pose: 'lie', x: 80, y: 176 },
-    { who: 'CUSTOMER_PINK', pose: 'lie', x: 96, y: 176 },
-    { who: 'CUSTOMER_ORANGE', pose: 'lie', x: 196, y: 182 },
-    { who: 'CUSTOMER_MINT', pose: 'lie', x: 212, y: 182 },
-    { who: 'CUSTOMER_GREY', pose: 'lie', x: 304, y: 172 },
-    { who: 'CUSTOMER_NAVY', pose: 'lie', x: 320, y: 172 }
+    { who: 'CUSTOMER_GREEN', pose: 'lie', x: 66, y: 69 },
+    { who: 'CUSTOMER_TEAL', pose: 'lie', x: 66, y: 82 },
+    { who: 'CUSTOMER_LILAC', pose: 'lie', dir: 'right', x: 328, y: 71, head: 'down', eyes: 'closed' },
+    { who: 'CUSTOMER_RED', pose: 'lie', dir: 'right', x: 328, y: 84, head: 'up', eyes: 'closed' },
+    { who: 'CUSTOMER_PINK', pose: 'lie', dir: 'right', x: 86, y: 161 },
+    { who: 'CUSTOMER_BEIGE', pose: 'lie', dir: 'right', x: 86, y: 174 },
+    { who: 'CUSTOMER_MINT', pose: 'lie', x: 206, y: 167 },
+    { who: 'CUSTOMER_ORANGE', pose: 'lie', x: 206, y: 180, head: 'up' },
+    { who: 'CUSTOMER_NAVY', pose: 'lie', x: 320, y: 157 },
+    { who: 'CUSTOMER_GREY', pose: 'lie', x: 320, y: 170 }
   ],
 
   guards: [
-    // a Ellen do passado, à esquerda (como na selfie do planetário)
-    { who: 'ELLEN_F1', x: 184, y: 89, pose: 'lie', head: 'down',
-      look: 270, range: 40, half: 26, heartAt: [8, -36],
+    // a Ellen do passado em cima e o Fabio embaixo, deitados com a cabeça na almofada da esquerda
+    // Loop de 9,4 s: céu (3 s) → beijo (3 s) → sentam e olham a sala (3,1 s; os cones andam da
+    // esquerda para a direita, junto com quem passa) → deitam. Janela: o céu e o beijo (6 s).
+    // Sentados (de pernas cruzadas), ficam lado a lado no meio da cama, de frente para a sala.
+    { who: 'ELLEN_F1', x: 194, y: 75, pose: 'lie', face: 'left',
+      look: 270, range: 40, half: 26, heartAt: [-8, -2],
       loop: [
-        { t: 3.0 },                                                        // olha o céu
-        { t: 0.3, head: 'right', eyes: 'closed', cone: false, fx: 'heart' }, // o beijo
+        { t: 3.0 },                                                       // olha o céu
+        { t: 0.3, head: 'down', eyes: 'closed', cone: false, fx: 'heart' }, // o beijo
         { t: 2.7 },
-        { t: 0.3, pose: 'sit', face: 'down', head: null, eyes: 'open', cone: true, fx: null,
-          look: 150, range: 104, half: 30 },                               // senta e olha em volta
-        { t: 1.7, look: 60 },
-        { t: 0.3 },
-        { t: 0.3, pose: 'lie', head: 'down', look: 270, range: 40, half: 26 } // volta a deitar
+        { t: 0.3, pose: 'floor', face: 'down', head: null, eyes: 'open', cone: true, fx: null,
+          to: [186, 84], look: 150, range: 104, half: 30 },               // senta e olha em volta
+        { t: 0.8 },
+        { t: 1.6, look: 75 },
+        { t: 0.4 },
+        { t: 0.3, pose: 'lie', face: 'left', head: 'sky', to: [194, 75],
+          look: 270, range: 40, half: 26 }                                // volta a deitar
       ] },
 
-    { who: 'FABIO_F1', x: 200, y: 89, pose: 'lie', head: 'down',
+    { who: 'FABIO_F1', x: 194, y: 88, pose: 'lie', face: 'left',
       look: 270, range: 40, half: 26,
       loop: [
         { t: 3.0 },
-        { t: 0.3, head: 'left', eyes: 'closed', cone: false },
+        { t: 0.3, head: 'up', eyes: 'closed', cone: false },
         { t: 2.7 },
-        { t: 0.3, pose: 'sit', face: 'down', head: null, eyes: 'open', cone: true,
-          look: 30, range: 104, half: 30 },
-        { t: 1.7, look: 120 },
-        { t: 0.3 },
-        { t: 0.3, pose: 'lie', head: 'down', look: 270, range: 40, half: 26 }
+        { t: 0.3, pose: 'floor', face: 'down', head: null, eyes: 'open', cone: true,
+          to: [202, 84], look: 105, range: 104, half: 30 },
+        { t: 0.8 },
+        { t: 1.6, look: 30 },
+        { t: 0.4 },
+        { t: 0.3, pose: 'lie', face: 'left', head: 'sky', to: [194, 88],
+          look: 270, range: 40, half: 26 }
       ] }
   ]
 };

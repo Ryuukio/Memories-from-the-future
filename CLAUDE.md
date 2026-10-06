@@ -4,25 +4,19 @@ Jogo do pedido de casamento do Fabio para a Ellen. Tudo está no `SPEC.md`: leia
 
 ## Estado
 
-- Etapas 1 (base) e 2 (núcleo de stealth no F1 A1) prontas e commitadas.
-- **Etapa 3 em andamento**: o commit "Etapa 3 (parcial)" tem tudo o que já foi feito. Já feito nesta etapa:
-  - Fluxo completo em `flow.js`: cartão da fase (`card.js`) → sala A → corredor (`HALL`) → sala B → corredor → sala C → salinha do baú (`CHEST`) → tela da máquina (`anomaly.js`) → cartão da próxima fase (sem cenários, volta ao título). Na fase 1, a sala A abre com as falas de chegada (`texts.arrival`). Salva também em `CHEST` e `MACHINE`, e o Continue volta para lá.
-  - Baú (`chest.js` + desenhos dos itens em `items.js`), barra de memória animada, fala do Fabio. Máquina testada: aceita "  hOkkaidô! ", recusa errado com tremor.
-  - Os 5 cenários novos em `data/scenes/F1A2.js` … `F1C2.js`, desenhados em `js/game/scenery-f1.js`; corredor e baú em `scenery-hall.js`. Todos montam sem erro (`Room.build`). F1 A2 e F1 B1 já foram vistos e estão bons.
-  - Troncos genéricos `TORSO_REG_*`/`TORSO_SLIM_*` (letras `v`/`V` = antebraço), pose `lie` (`BODY_LIE`), `eyes: 'closed'`, coraçõezinhos no beijo (`fx: 'heart'`, `heartAt`), cadeira estilo `'cafe'`, garçom andando (`movers` no cenário: bloqueia passagem e visão), luz do ambiente (`look.tint` + `lights`), sombras longas (`look.shadow: 'long'`), objetos `live`/`fx`/`hidden`, `look.bounds`/`bottom`/`edgeWidth`.
-  - Modo de teste: atalhos para o cartão, cada cenário, corredor, baú e máquina de cada fase.
-- **Falta para fechar a etapa 3:**
-  1. Ver F1 B2, F1 C1 e F1 C2 na tela. No planetário, os casais deitados (`pose: 'lie'`) parecem gente em pé: deixar claro que estão deitados (travesseiro sob a cabeça, corpo mais curto ou sem as pernas visíveis, coberta etc.).
-  2. Balancear os loops dos 6 cenários (SPEC 5: cerca de 30 s por cenário, pega no máximo 1–2 vezes, janela clara). Dá para simular o loop com `g.update(1/60)` e checar `Vision.inside` ao longo do caminho.
-  3. Jogar a fase 1 inteira: New game → cartão → chegada → A → corredor → B → corredor → C → baú → máquina → cartão da fase 2. Testar o Continue no baú e na máquina e o Ctrl+Shift+K em cada parte.
-  4. A porta do corredor (`hallDoor` em `scenery-hall.js`) abre dentro do `live` (no desenho), não no update: funciona, mas depende da taxa de quadros.
-  5. Atualizar esta seção e fazer o commit "Etapa 3: fase 1 completa".
+- Etapas 1 (base), 2 (núcleo de stealth no F1 A1) e 3 (fase 1 completa) prontas e commitadas. A próxima é a etapa 4 (fases 2 a 4).
+- Fase 1 jogável do começo ao fim: cartão da fase (`card.js`) → chegada (`texts.arrival`) → sala A → corredor (`HALL`) → sala B → corredor → sala C → salinha do baú (`CHEST`, `chest.js` + `items.js`) → tela da máquina (`anomaly.js`) → cartão da fase 2 (enquanto a fase 2 não tiver cenários, volta ao título). O fluxo está em `flow.js`. Salva no começo de cada cenário e também em `CHEST` e `MACHINE`; o Continue volta para lá. O Ctrl+Shift+K funciona no cartão, em cada cenário, no corredor, no baú e na máquina.
+- Cenários da fase 1 em `data/scenes/F1A1.js` … `F1C2.js`, desenhados em `scenery.js` (F1 A1) e `scenery-f1.js`; corredor e baú em `scenery-hall.js`. Cada cenário é recortado no próprio espaço ao pintar o fundo (nada vaza para o vizinho).
+- Poses: `lie` é deitado na horizontal (32×16, `dir` = lado da cabeça, `head: 'sky' | 'up' | 'down'`), `floor` é sentado de pernas cruzadas, de frente (`BODY_FLOOR_SIT`). No planetário, os casais deitam na horizontal nas camas redondas, e o casal do passado senta de pernas cruzadas para olhar a sala.
+- Balanceamento da fase 1 (medido com `tools/devtools.js`): andando reto sem olhar, a Ellen é pega em 11% a 21% das fases do loop de cada cenário e leva susto ("??!!") em 17% a 29%; esperando a janela, passa sempre, em 6 a 9,5 s jogando perfeito. Os cones das viradas andam da esquerda para a direita, junto com quem passa (é isso que pega quem não espera). Use os mesmos números como referência nas fases seguintes, subindo um pouco a cada fase.
 - O repositório `Memories-from-the-future` já existe no GitHub, mas ainda não tem remote configurado aqui: peça o link ao Fabio antes do primeiro push. Ele usa o GitHub Desktop.
 - `suspicionUpPerSec` está em 2.0, não no 1.0 do SPEC: com 1.0 ninguém era pega no F1 A1, nem parada no corredor. O motivo está no comentário do `config.js`.
 
 ## Como testar
 
 - O painel do navegador não interage com `file://`. Use `preview_start` com o nome `jogo` (servidor Python na porta 8765, configurado em `.claude/launch.json`) e confira se o console está sem erros. Se a porta já estiver ocupada por outra conversa, abra `http://127.0.0.1:8765/index.html` com `preview_start` + `url`: é a mesma pasta.
+- Numa worktree (`.claude/worktrees/...`), o servidor da porta 8765 mostra a pasta principal, não a sua. Crie outra configuração no `.claude/launch.json` da worktree, com outra porta e o caminho da worktree **com barras normais** (`C:/Users/...`): com `\` o caminho chega quebrado ao Python e tudo dá 404.
+- `tools/devtools.js` tem as ferramentas de teste (o jogo não carrega esse arquivo): congelar o loop e avançar na mão (`__run`), print ampliado (`__snap`), abrir cenário, teclas simuladas e as medidas de balanceamento (`__plan`, `__naive`, `__stats`, `__heat`). O jeito de carregar e a lista estão no topo do arquivo. Depois de `__reload()`, espere a página carregar numa chamada separada antes de carregar o arquivo de novo.
 - O navegador guarda os scripts em cache. Antes de recarregar, rode `fetch(src, { cache: 'reload' })` em cada `script[src]`.
 - Com o painel oculto, o `requestAnimationFrame` para e o jogo congela. Para medir a jogabilidade sem depender disso, chame `StealthState.enter({ stage: 1, room: 0, codes: ['F1A1'], at: 0 })` e depois `StealthState.update(1/60)` em sequência. `StealthState.inspect()` devolve a sala, a Ellen, o Fabio e a fase.
 - Teclas simuladas: dispare `KeyboardEvent` em `window` com `code` (ex.: `ArrowRight`, `Space`, `KeyD` + `ctrlKey`/`shiftKey`). Na tela da máquina, o texto vai pelo `key` (ex.: `{ key: 'h', code: 'KeyH' }`) e Enter confirma.

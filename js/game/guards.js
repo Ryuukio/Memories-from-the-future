@@ -8,9 +8,10 @@
 //     loop: [ { t: 4 }, { t: 0.5, look: 115, range: 72, half: 30 }, ... ] }
 // Cada passo do loop dura `t` segundos. Durante o passo, look, range, half e to: [x, y]
 // (andar até lá) vão do valor atual até o novo, com giro suave pelo lado mais curto.
-// Sem `look`, quem anda olha para onde está indo. pose ('sit', 'lie', 'stand'), face, head,
-// anim, eye, eyes ('closed' no beijo), fx ('heart' = coraçõezinhos subindo, em heartAt: [dx, dy])
-// e cone (false = olhos fechados) mudam no começo do passo.
+// Sem `look`, quem anda olha para onde está indo. pose ('sit', 'floor', 'lie', 'stand'), face
+// (deitado: o lado da cabeça), head, anim, eye, eyes ('closed' no beijo), fx ('heart' =
+// coraçõezinhos subindo, em heartAt: [dx, dy]) e cone (false = olhos fechados) mudam no começo
+// do passo.
 const Guard = (() => {
   const RAD = Math.PI / 180;
   const ease = p => p * p * (3 - 2 * p);
@@ -95,7 +96,7 @@ const Guard = (() => {
 
     // cone no mundo: origem nos "olhos" (no chão, perto do corpo), ângulos em radianos
     g.cone = () => {
-      const eye = g.eye || (g.pose === 'sit' ? [0, -8] : g.pose === 'lie' ? [0, -22] : [0, -3]);
+      const eye = g.eye || (g.pose === 'sit' ? [0, -8] : g.pose === 'floor' ? [0, -6] : g.pose === 'lie' ? [g.face === 'right' ? 8 : -8, -8] : [0, -3]);
       g._cone = g._cone || {};
       return Object.assign(g._cone, {
         x: g.x + eye[0], y: g.y + eye[1],
@@ -105,11 +106,15 @@ const Guard = (() => {
 
     g.coneActive = () => g.coneOn && g.coneScale > 0.6;
 
+    // topo da cabeça, para o balão de suspeita
+    g.headTop = () => (g.pose === 'lie' ? { x: g.x + (g.face === 'right' ? 8 : -8), y: g.y - 15 } : { x: g.x, y: g.y - 31 });
+
     g.stage = () => Math.min(3, Math.floor(g.sus));
 
     g.sprite = () => {
       const lookDir = Chars.dirOf(g.look), eyes = g.eyes;
-      if (g.pose === 'lie') return Chars.sprite(def.who, { pose: 'lie', head: g.head || 'down', eyes });
+      if (g.pose === 'lie') return Chars.sprite(def.who, { pose: 'lie', dir: g.face, head: g.head || 'sky', eyes });
+      if (g.pose === 'floor') return Chars.sprite(def.who, { pose: 'floor', dir: 'down', head: g.head || lookDir, eyes });
       if (g.pose === 'sit') {
         const frame = (g.anim === 'cook' || g.anim === 'eat') && Math.floor(g.time / (g.anim === 'eat' ? 0.5 : 0.35)) % 2 ? 1 : 0;
         return Chars.sprite(def.who, { pose: 'sit', dir: g.face, head: g.head || lookDir, frame, eyes });

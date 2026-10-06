@@ -4,7 +4,10 @@
 //
 // Chars.sprite('ELLEN_NOW', { pose, dir, head, frame, eyes })
 //   pose   'walk' (padrão), 'sit' (sentado; dir = para onde o corpo está virado) ou
-//          'lie' (deitado de barriga para cima, visto de cima; no beijo a cabeça vira para o lado)
+//          'lie' (deitado de barriga para cima, na horizontal; dir = lado da cabeça, 'left' ou
+//          'right'; head = 'sky' olhando para cima, ou 'up'/'down' virando para o lado de cima
+//          ou de baixo da tela, no beijo). O deitado tem 32×16 px.
+//          'floor' = sentado no chão (ou na cama) de pernas cruzadas, de frente.
 //   dir    'right' | 'left' | 'down' | 'up'
 //   head   para onde a cabeça olha (padrão: dir). Sentado de lado, a cabeça pode virar de frente.
 //   frame  andando: -1 parado, 0 a 3 o ciclo de 4 quadros; sentado: 0 normal, 1 braço à frente
@@ -109,6 +112,10 @@ const Chars = (() => {
 
     if (pose === 'lie') {
       rows = overlay(rows, SPRITES.BODY_LIE, 0, 15);
+    } else if (pose === 'floor') {
+      // o corpo é mais curto: tudo desce 3 px para os pés ficarem na base
+      hdy = 3;
+      rows = overlay(rows, SPRITES.BODY_FLOOR_SIT, 0, 15 + hdy);
     } else if (pose === 'sit') {
       if (dir === 'down') rows = overlay(rows, SPRITES.BODY_FRONT_SIT, 0, 15);
       else if (dir === 'up') rows = overlay(rows, SPRITES.BODY_BACK_SIT, 0, 15);
@@ -152,6 +159,19 @@ const Chars = (() => {
     return Gfx.buildSprite(rows, o._palette, { pattern });
   }
 
+  // Deitado: monta a pessoa em pé, de barriga para cima (cabeça de frente = olhando o céu), e
+  // gira 90° para a cabeça ficar do lado `dir`. As estampas são aplicadas antes de girar.
+  // Girando para a esquerda (anti-horário), o lado direito do molde fica em cima.
+  const LIE_HEAD = { left: { up: 'right', down: 'left' }, right: { up: 'left', down: 'right' } };
+  function lying(id, dir, look, eyes) {
+    const img = build(id, 'lie', 'down', look === 'sky' ? 'down' : LIE_HEAD[dir][look], -1, eyes);
+    const cv = Gfx.canvas(32, 16);
+    cv.cx.translate(16, 8);
+    cv.cx.rotate(dir === 'left' ? -Math.PI / 2 : Math.PI / 2);
+    cv.cx.drawImage(img, -8, -16);
+    return cv;
+  }
+
   // Cadeiras dos personagens sentados, do mesmo tamanho do sprite: de lado vai por baixo da
   // pessoa; de costas, o encosto vai por cima. chair: true = a do okonomiyaki (madeira clara,
   // assento e encosto pretos), ou o nome de outro estilo de Scenery.CHAIRS (ex.: 'cafe').
@@ -174,14 +194,21 @@ const Chars = (() => {
   return {
     // Desenha com a sombra no chão e, se estiver sentado numa cadeira, a cadeira na ordem certa.
     // o.shadow: false = sem sombra; 'long' = esticada para baixo e para a direita (parque à tarde)
+    // Deitado: o meio do corpo em x e a base em y, com uma sombra fraca na cama.
     draw(ctx, img, x, y, o = {}) {
+      if (o.pose === 'lie') {
+        if (o.shadow !== false) Gfx.shadow(Math.round(x) + 1, Math.round(y) - 6, 30, 12, 0.3);
+        ctx.drawImage(img, Math.round(x) - 16, Math.round(y) - 15);
+        return;
+      }
       const sx = Math.round(x) - 8, sy = Math.round(y) - 31;
       const sitting = o.pose === 'sit', side = o.dir === 'left' || o.dir === 'right';
       if (o.shadow === 'long') {
         Gfx.shadow(Math.round(x) + 2, Math.round(y), 12, 4);
         Gfx.shadow(Math.round(x) + 7, Math.round(y) + 2, 12, 4, 0.2);
-      } else if (o.shadow !== false && o.pose !== 'lie') {
-        Gfx.shadow(Math.round(x), Math.round(y) - (sitting ? 0 : 1), sitting ? 14 : 12, 4);
+      } else if (o.shadow !== false) {
+        const wide = sitting || o.pose === 'floor';
+        Gfx.shadow(Math.round(x), Math.round(y) - (wide ? 0 : 1), wide ? (sitting ? 14 : 16) : 12, 4);
       }
       if (sitting && o.chair && side) ctx.drawImage(chair(o.dir, o.chair), sx, sy);
       ctx.drawImage(img, sx, sy);
@@ -189,7 +216,13 @@ const Chars = (() => {
     },
 
     sprite(id, opts = {}) {
-      const pose = opts.pose || 'walk', dir = opts.dir || 'down';
+      const pose = opts.pose || 'walk';
+      if (pose === 'lie') {
+        const dir = opts.dir === 'right' ? 'right' : 'left', look = opts.head || 'sky', eyes = opts.eyes || 'open';
+        const key = id + '|lie|' + dir + '|' + look + '|' + eyes;
+        return cache[key] || (cache[key] = lying(id, dir, look, eyes));
+      }
+      const dir = opts.dir || 'down';
       const head = opts.head || dir, frame = opts.frame === undefined ? -1 : opts.frame;
       const eyes = opts.eyes || 'open';
       const key = id + '|' + pose + '|' + dir + '|' + head + '|' + frame + '|' + eyes;

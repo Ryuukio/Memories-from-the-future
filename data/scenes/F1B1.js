@@ -57,44 +57,43 @@ SCENES.F1B1 = {
   ],
 
   guards: [
-    // o Fabio do passado: janela → olha a Ellen → janela → (na primeira metade) vira para o balcão
+    // Loop de 15,6 s, em duas metades: olham a janela (2 s) → olham um para o outro (1 s) → um
+    // deles vira para o balcão e fica ~3 s olhando o salão (na 1ª metade o Fabio, na 2ª a Ellen;
+    // o cone anda da esquerda para a direita, junto com quem passa). Janela: ~4 s em cada metade.
+    // o Fabio do passado
     { who: 'FABIO_F1', x: 160, y: 84, pose: 'sit', face: 'up', chair: 'cafe',
       look: 270, range: 34, half: 24,
       loop: [
-        { t: 3.5 },                                   // olha a janela
+        { t: 2.0 },                                   // olha a janela
         { t: 0.5, look: 0, range: 60, half: 20 },     // olha a Ellen
-        { t: 2.0 },
+        { t: 1.0 },
         { t: 0.5, look: 270, range: 34, half: 24 },
-        { t: 1.5 },
-        { t: 0.6, look: 55, range: 100, half: 26 },   // vira para o balcão
-        { t: 1.4, look: 105 },
-        { t: 0.4 },
-        { t: 0.6, look: 270, range: 34, half: 24 },
-        { t: 3.5 },
+        { t: 0.5, look: 135, range: 110, half: 32 },  // vira para o balcão
+        { t: 2.8, look: 65 },
+        { t: 0.5, look: 270, range: 34, half: 24 },
+        { t: 2.0 },
         { t: 0.5, look: 0, range: 60, half: 20 },
-        { t: 2.0 },
+        { t: 1.0 },
         { t: 0.5, look: 270, range: 34, half: 24 },
-        { t: 4.5 }
+        { t: 3.8 }
       ] },
 
     // a Ellen do passado: o mesmo, mas vira para o balcão na segunda metade
     { who: 'ELLEN_F1', x: 184, y: 84, pose: 'sit', face: 'up', chair: 'cafe',
       look: 270, range: 34, half: 24,
       loop: [
-        { t: 3.5 },
-        { t: 0.5, look: 180, range: 60, half: 20 },
         { t: 2.0 },
-        { t: 0.5, look: 270, range: 34, half: 24 },
-        { t: 4.5 },
-        { t: 3.5 },
         { t: 0.5, look: 180, range: 60, half: 20 },
-        { t: 2.0 },
+        { t: 1.0 },
         { t: 0.5, look: 270, range: 34, half: 24 },
-        { t: 1.5 },
-        { t: 0.6, look: 125, range: 100, half: 26 },
-        { t: 1.4, look: 75 },
-        { t: 0.4 },
-        { t: 0.6, look: 270, range: 34, half: 24 }
+        { t: 3.8 },
+        { t: 2.0 },
+        { t: 0.5, look: 180, range: 60, half: 20 },
+        { t: 1.0 },
+        { t: 0.5, look: 270, range: 34, half: 24 },
+        { t: 0.5, look: 120, range: 110, half: 32 },
+        { t: 2.8, look: 50 },
+        { t: 0.5, look: 270, range: 34, half: 24 }
       ] }
   ]
 };

@@ -433,7 +433,12 @@ const Scenery = (() => {
     // Fundo de um cenário: piso + parede do fundo + paredes laterais com as portas.
     // FLOORS[nome] é uma tábua ({ tones, seam, grain }) ou uma função (c, x, y, w, h, look).
     // WALLS[nome](c, x, w, h, look). A borda lateral é look.edge (ou look.edges.left/right).
+    // Tudo fica recortado no próprio cenário, para nada vazar no cenário do lado.
     paintBase(c, ox, look) {
+      c.save();
+      c.beginPath();
+      c.rect(ox, 0, 384, 192);
+      c.clip();
       const wallH = look.wall.height, floor = FLOORS[look.floor];
       if (typeof floor === 'function') floor(c, ox, wallH, 384, 192 - wallH, look);
       else planks(c, ox, wallH, 384, 192 - wallH, floor, ox + 1);
@@ -445,6 +450,7 @@ const Scenery = (() => {
         const style = (look.edges && look.edges[side]) || look.edge || 'wood';
         EDGES[style](c, side === 'left' ? ox + b0 : ox + b1 - 4, wallH, doors[side] || null, side, look);
       });
+      c.restore();
     }
   };
 })();

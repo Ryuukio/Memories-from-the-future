@@ -588,25 +588,32 @@
     }
   };
 
-  // cama redonda azul com dois travesseiros
+  // Cama redonda azul de pelúcia (como na selfie do planetário), com uma almofada grande do lado
+  // das cabeças (p.pillows: 'left', padrão, ou 'right'). Quem deita nela fica na horizontal, com o
+  // meio do corpo em x + 34 e a base em y + 21 (de cima) e y + 34 (de baixo).
   props.roundBed = {
-    size: () => [64, 42],
-    solid: () => [4, 6, 56, 32],
+    size: () => [68, 44],
+    solid: () => [4, 8, 60, 30],
     base: 8,
-    draw(c) {
-      alpha(c, 0.4, () => ell(c, 2, 8, 64, 34, '#07060E'));
-      ell(c, 0, 2, 64, 38, '#1E2E78');
-      ell(c, 1, 2, 62, 35, '#2E4AA8');
-      ell(c, 6, 4, 36, 18, '#3A58BC');
-      for (let i = 0; i < 10; i++) {
+    draw(c, p) {
+      alpha(c, 0.4, () => ell(c, 3, 9, 65, 35, '#07060E'));
+      ell(c, 0, 2, 68, 40, '#1A2868');
+      ell(c, 1, 2, 66, 38, '#3A58BC');
+      ell(c, 2, 4, 64, 35, '#2E4AA8');
+      ell(c, 9, 9, 50, 25, '#2842A0');
+      for (let i = 0; i < 16; i++) {
         const v = hash(i, 31);
-        R(10 + v % 44, 10 + (v >>> 6) % 22, 1, 1, '#25409A', c);
+        R(9 + v % 50, 8 + (v >>> 6) % 27, 1, 1, (v >>> 3) % 2 ? '#25409A' : '#3450B4', c);
       }
-      [[11, 4], [35, 4]].forEach(([px, py]) => {
-        R(px, py, 18, 8, '#7E9CE0', c);
-        R(px + 1, py - 1, 16, 1, '#7E9CE0', c);
-        R(px + 1, py, 16, 2, '#A8C0F0', c);
-        R(px, py + 8, 18, 1, '#5A78C8', c);
+      // a almofada: duas partes, uma atrás de cada cabeça
+      const px = p.pillows === 'right' ? 38 : 14;
+      [5, 19].forEach(py => {
+        R(px + 1, py, 14, 14, '#6A88D4', c);
+        R(px, py + 1, 16, 12, '#6A88D4', c);
+        R(px + 1, py + 1, 13, 3, '#9AB4EC', c);
+        R(px + 2, py + 1, 8, 1, '#C0D2F6', c);
+        R(px + 1, py + 13, 14, 1, '#4A64B4', c);
+        R(px + 15, py + 2, 1, 11, '#4A64B4', c);
       });
     }
   };
