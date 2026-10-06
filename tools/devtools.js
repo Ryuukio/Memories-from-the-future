@@ -20,6 +20,9 @@
 //   __naive(códigos, i, período)         jogadora que anda reto sem olhar: suspeita máxima por fase (3 = pega)
 //   __stats(texto do __naive)            % das fases com susto (≥ 2) e com a Ellen pega (3)
 //   __heat / __drawHeat / __drawPath     mapa de calor dos cones e o caminho, por cima do print
+// Partida de teste: __drive(segundos) joga sozinho de onde estiver até a tela final (ver no fim do
+// arquivo). Do título: Flow.newGame() e depois __drive(110) algumas vezes. A partida inteira, jogando
+// perfeito e sem ser pega, leva ~250 s de jogo.
 // Som (não precisa ouvir): await Sound.render('battle', 10) ou Sound.render('alert1', 2) toca offline
 // e devolve o pico e o RMS da saída. Hoje: músicas com pico ~0,35 e RMS ~0,085 (a valsa da fase 3,
 // 0,057); alertas com pico ~0,2 a 0,25, o tiro final ~0,9 (sozinho, no silêncio).
@@ -62,12 +65,15 @@ window.__stats = (str) => { const v = str.split(' ').map(parseFloat); return { n
 
 // ---------- planejador: caminho mais rápido sem ser vista (busca no espaço × tempo) ----------
 // __plan(['F1A1','F1A2'], 0, { run: true, t0: 0 }) → { time, path }
+// o.from: [x, y] do cenário (em vez do começo); o.blind: ignora os cones (só confere a passagem).
+// Com terreno lento (look.slow), usa o fator mais lento do cenário: o caminho vale em qualquer ponto.
 // Células de 4 px; a cada passo a Ellen anda até 2 células (8 px, em qualquer direção) ou espera.
 // "Vista" = algum ponto dos pés (os mesmos SAMPLES do stealth) dentro de um cone ativo.
 window.__plan = (codes, si, o = {}) => {
   const room = Room.build(codes), ox = si * 384, C = 4, W = 96, H = 48;
   const look = room.scenes[si].data.look;
-  const speed = (o.run ? 110 : 60) * (look.water ? (look.water.speed || 0.65) : 1), R = 2, dt = R * C / speed, T = o.T || 60;
+  const slowK = Math.min(1, ...(look.slow || []).map(z => z[4]));
+  const speed = (o.run ? 110 : 60) * (look.water ? (look.water.speed || 0.65) : 1) * slowK, R = 2, dt = R * C / speed, T = o.T || 60;
   const lights = look.lightOnly ? ((look.tint && look.tint.lights) || []) : null;
   const lit = (x, y) => !lights || lights.some(([lx, ly, r]) => Math.hypot(x - (ox + lx), (y - 3 - ly) * 1.5) < r * 0.85);
   const SAMPLES = [[0, -2], [-4, -2], [4, -2]];
@@ -96,7 +102,7 @@ window.__plan = (codes, si, o = {}) => {
     for (let k = 0; k < W * H; k++) {
       if (!walk[k]) continue;
       const x = px(k % W), y = py((k / W) | 0);
-      if (lit(x, y) && cones.some(c => SAMPLES.some(([a, b]) => Vision.inside(c, x + a, y + b)))) seen[k] = 1;
+      if (!o.blind && lit(x, y) && cones.some(c => SAMPLES.some(([a, b]) => Vision.inside(c, x + a, y + b)))) seen[k] = 1;
       if (mrect.length) { const b = box(x, y); if (mrect.some(r => overlap(b, r))) block[k] = 1; }
     }
     return { seen, block };
@@ -126,7 +132,7 @@ window.__plan = (codes, si, o = {}) => {
     if (hit >= 0) {
       const path = [];
       for (let kk = parents.length - 1, c = hit; kk >= 0 && c >= 0; kk--) { path.push([px(c % W), py((c / W) | 0)]); c = parents[kk][c]; }
-      return { time: +(k * dt).toFixed(2), path: path.reverse() };
+      return { time: +(k * dt).toFixed(2), path: path.reverse(), dt };
     }
     let any = 0; for (let c = 0; c < W * H; c++) if (next[c]) { any = 1; break; }
     if (!any) return { time: null, stuck: k * dt };
@@ -188,9 +194,10 @@ window.__naive = (codes, si, period, o = {}) => {
     let x = ox + room.scenes[si].data.start.x, y = y0, maxSus = 0, blocked = false;
     const overlap = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
     const free = (xx, yy) => { const b = { x: xx - 5, y: yy - 6, w: 10, h: 6 }; return !room.solids.some(r => overlap(b, r)) && !room.movers.some(m => m.block && overlap(b, m.rect())); };
+    const slowAt = (xx, yy) => (look.slow || []).reduce((f, [zx, zy, zw, zh, s]) => (xx - ox >= zx && xx - ox < zx + zw && yy >= zy && yy < zy + zh ? Math.min(f, s) : f), 1);
     for (let steps = 0; x < ox + 380 && steps < 1800; steps++) {
       all.forEach(g => g.update(dt));
-      const v = speed * dt;
+      const v = speed * dt * slowAt(x, y);
       // anda para a direita; se algo bloquear, contorna por baixo (ou por cima) e depois volta para a linha
       if (free(x + v, y)) { x += v; if (y !== y0 && free(x, y + Math.sign(y0 - y) * Math.min(v, Math.abs(y0 - y)))) y += Math.sign(y0 - y) * Math.min(v, Math.abs(y0 - y)); }
       else if (free(x, y + v)) { y += v; blocked = true; }
@@ -270,3 +277,159 @@ window.__route = (codes, si, period, pts, o = {}) => {
   }
   return res.join(' ');
 };
+
+// ---------- piloto automático (partida de teste) ----------
+// __drive(segundos) joga sozinho a partir de onde estiver: avança as falas e os cartões, atravessa
+// cada cenário pelo caminho do __plan (com os vigias no mesmo tempo do loop e as setas apertadas de
+// verdade), passa pelo corredor, abre o baú, digita a primeira resposta aceita na máquina, ganha a
+// batalha (um tiro errado, o Mounjaro e o tiro final) e anda até a escada. Para na tela final.
+// Devolve o que passou (cada tela, com o tempo de jogo) e quantas vezes a Ellen foi pega em cada
+// cenário. Chame em pedaços: __drive(120) e depois __drive(120) de novo continua de onde parou.
+(() => {
+  const held = {};
+  const hold = (code, on) => { if (!!held[code] === on) return; held[code] = on; __key(code, on ? 'down' : 'up'); };
+  const release = () => Object.keys(held).forEach(c => hold(c, false));
+  const D = window.__driveState = { t: 0, log: [], caught: {}, plan: null, visit: '', typed: false, shots: 0, lastPos: null, still: 0, wasCaught: false };
+
+  function steer(tx, ty, run) {
+    const e = StealthState.inspect().ellen, dx = tx - e.x, dy = ty - e.y;
+    hold('ArrowRight', dx > 1.5); hold('ArrowLeft', dx < -1.5);
+    hold('ArrowDown', dy > 1.5); hold('ArrowUp', dy < -1.5);
+    hold('ShiftLeft', !!run);
+    return Math.hypot(dx, dy);
+  }
+  const step = s => { __run(s); D.t += s; return s; };
+
+  // caminho em grade de 4 px até um ponto que satisfaça goal(x, y), contornando o que é sólido
+  function route(room, sx, sy, goal) {
+    const C = 4, W = Math.ceil(room.w / C), H = 48, ov = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+    const free = (x, y) => { const b = { x: x - 5, y: y - 6, w: 10, h: 6 }; return b.x >= 0 && b.x + b.w <= room.w && !room.solids.some(r => ov(b, r)); };
+    const cx = i => i * C + 2, cy = j => j * C + 2;
+    const s0 = Math.round((sx - 2) / C) + Math.round((sy - 2) / C) * W, par = new Int32Array(W * H).fill(-2);
+    par[s0] = -1;
+    const q = [s0];
+    for (let h = 0; h < q.length; h++) {
+      const c = q[h], i = c % W, j = (c / W) | 0;
+      if (goal(cx(i), cy(j))) {
+        const out = [];
+        for (let k = c; k >= 0; k = par[k]) out.push([cx(k % W), cy((k / W) | 0)]);
+        return out.reverse();
+      }
+      for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+        const ni = i + di, nj = j + dj, n = nj * W + ni;
+        if (ni < 0 || nj < 0 || ni >= W || nj >= H || par[n] !== -2 || !free(cx(ni), cy(nj))) continue;
+        par[n] = c;
+        q.push(n);
+      }
+    }
+    return null;
+  }
+
+  // anda pelo caminho até o objetivo (replaneja se ficar presa)
+  function walkTo(s, key, goal, run) {
+    const e = s.ellen;
+    if (!D.path || D.pathKey !== key) { D.path = route(s.room, e.x, e.y, goal) || [[e.x + 30, e.y]]; D.pathKey = key; D.pi = 0; }
+    while (D.pi < D.path.length - 1 && Math.hypot(D.path[D.pi][0] - e.x, D.path[D.pi][1] - e.y) < 2.5) D.pi++;
+    const [tx, ty] = D.path[D.pi];
+    steer(tx, ty, run);
+    const pos = Math.round(e.x) + ',' + Math.round(e.y);
+    D.still = pos === D.lastPos ? D.still + 1 / 60 : 0;
+    D.lastPos = pos;
+    if (D.still > 1.5) { D.path = null; D.still = 0; }
+    return D.pi >= D.path.length - 1 && Math.hypot(tx - e.x, ty - e.y) < 2.5;
+  }
+  const tap = () => { release(); __tap('Space'); D.t += 4 / 60; };
+
+  function typeAnswer(stage) {
+    const ans = GAME_CONFIG.stages[stage - 1].anomaly.answers[0];
+    for (const ch of ans) {
+      const code = /[a-z]/i.test(ch) ? 'Key' + ch.toUpperCase() : 'Digit' + ch;
+      __key(code, 'down', { key: ch }); __key(code, 'up', { key: ch }); step(1 / 60);
+    }
+    __key('Enter', 'down'); step(0.05); __key('Enter', 'up');
+  }
+
+  function where() {
+    if (Game.name !== 'stealth') return Game.name;
+    const s = StealthState.inspect();
+    return 'stealth:' + s.params.kind + ':' + s.params.codes.join(',') + (s.params.kind === 'room' ? ':' + s.cur : '');
+  }
+
+  // um cenário de memória: segue o caminho planejado; sem caminho, anda reto para a direita
+  function room(s) {
+    const e = s.ellen, ox = s.cur * 384;
+    if (!D.plan || D.plan.cur !== s.cur) {
+      const g = s.room.guards[0] || s.room.movers[0];
+      const p = __plan(s.params.codes, s.cur, { run: true, t0: g ? g.time : 0, from: [e.x - ox, e.y] });
+      D.plan = { cur: s.cur, path: p.path || [], dt: p.dt || 1, start: D.t, ok: p.time !== null };
+      D.still = 0;
+    }
+    const P = D.plan, j = Math.min(P.path.length - 1, Math.floor((D.t - P.start) / P.dt));
+    const done = !P.ok || j >= P.path.length - 1;
+    const [tx, ty] = done ? [ox + 420, P.path.length ? P.path[P.path.length - 1][1] : e.y] : P.path[j];
+    steer(tx, ty, true);
+    // preso (empurrando alguém que passa na frente): planeja de novo
+    const pos = Math.round(e.x) + ',' + Math.round(e.y);
+    D.still = pos === D.lastPos && Math.hypot(tx - e.x, ty - e.y) > 4 ? D.still + 1 / 60 : 0;
+    D.lastPos = pos;
+    if (D.still > 1.5) D.plan = null;
+    return step(1 / 60);
+  }
+
+  function stealth() {
+    const s = StealthState.inspect();
+    if (s.phase === 'caught') {
+      if (!D.wasCaught) { const code = s.room.scenes[s.cur].code; D.caught[code] = (D.caught[code] || 0) + 1; D.wasCaught = true; }
+      release(); D.plan = null; return step(0.1);
+    }
+    D.wasCaught = false;
+    if (s.phase === 'chest') { tap(); return step(0.25); }
+    if (s.phase !== 'play') { release(); return step(0.1); }
+    const k = s.params.kind;
+    if (k === 'room') return room(s);
+    const it = s.room.interact.find(i => !i.p.used);
+    if ((k === 'chest' || (k === 'story' && s.params.onInteract)) && it) {
+      // a mesma conta do nearby() do stealth
+      const r = it.rect, near = (x, y) => x > r.x - 6 && x < r.x + r.w + 6 && y - 3 > r.y - 4 && y - 3 < r.y + r.h + 10;
+      if (walkTo(s, 'it' + r.x + ',' + r.y, near, false)) tap();
+      return step(1 / 60);
+    }
+    const ex = s.room.exit;
+    if (ex && s.params.player) {
+      const into = (x, y) => x + 5 > ex.x + 2 && x - 5 < ex.x + ex.w - 2 && y > ex.y + 2 && y - 6 < ex.y + ex.h - 2;
+      if (walkTo(s, 'ex' + ex.x + ',' + ex.y, into, false)) steer(ex.x + ex.w + 20, ex.y + ex.h / 2, false);
+      return step(1 / 60);
+    }
+    release();
+    return step(0.1);
+  }
+
+  function battle() {
+    const b = BattleState.inspect();
+    if (b.phase === 'retry') { tap(); return step(0.2); }
+    if (b.phase !== 'menu') return step(0.1);
+    const pick = id => { const want = b.options.indexOf(id); for (let i = 0; i < want; i++) { __tap('ArrowDown'); D.t += 4 / 60; } tap(); };
+    if (b.sub) pick('mounjaro');
+    else if (D.shots === 0 || !b.tempted) { D.shots++; pick('shoot'); }
+    else pick('item');
+    return step(0.2);
+  }
+
+  window.__drive = (sec = 60) => {
+    const end = D.t + sec, from = D.log.length;
+    while (D.t < end) {
+      const w = where();
+      if (w !== D.visit) { D.visit = w; D.plan = null; D.path = null; D.typed = false; D.log.push(D.t.toFixed(1) + ' ' + w); }
+      if (Game.name === 'ending') { release(); break; }
+      if (Dialog.isBlocking()) { tap(); step(0.15); continue; }
+      if (Game.name === 'stealth') stealth();
+      else if (Game.name === 'battle') battle();
+      else if (Game.name === 'anomaly') {
+        if (!D.typed) { step(5); typeAnswer((Save.load() || {}).stage || 1); D.typed = true; }
+        step(0.5);
+      } else { tap(); step(0.3); }   // título, cartões
+    }
+    release();
+    return { t: +D.t.toFixed(1), log: D.log.slice(from), caught: D.caught };
+  };
+})();

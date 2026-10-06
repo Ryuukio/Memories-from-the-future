@@ -10,7 +10,8 @@ SCENES.F3C1 = {
     floor: 'lightDirt',
     wall: { style: 'himeji', height: 80, shadow: false },
     edge: 'hedge',
-    doors: { left: [96, 128], right: [96, 128] }
+    // a passagem da direita fica embaixo, alinhada com o caminho de Nara (a lagoa ocupa o alto do F3 C2)
+    doors: { left: [96, 128], right: [136, 186] }
   },
 
   start: { x: 14, y: 112, dir: 'right' },

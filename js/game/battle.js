@@ -342,7 +342,7 @@ const BattleState = (() => {
       Flow.afterBattle();
     },
 
-    inspect: () => ({ phase, bullets, tempted, usedMounjaro, form, hp })
+    inspect: () => ({ phase, bullets, tempted, usedMounjaro, form, hp, sub, options: options().map(o => o.id) })
   };
 })();
 
