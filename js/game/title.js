@@ -69,8 +69,8 @@ const TitleState = (() => {
       const feet = 156;
       Gfx.shadow(cx - 11, feet - 1, 12, 4);
       Gfx.shadow(cx + 11, feet - 1, 12, 4);
-      Gfx.draw(Chars.get('ellenNow').right, cx - 19, feet - 31);
-      Gfx.draw(Chars.get('fabioNow').left, cx + 3, feet - 31);
+      Gfx.draw(Chars.sprite('ELLEN_NOW', { dir: 'right' }), cx - 19, feet - 31);
+      Gfx.draw(Chars.sprite('FABIO_NOW', { dir: 'left' }), cx + 3, feet - 31);
       heart(cx - 3, 112 + Math.round(Math.sin(t * 2) * 1.5));
 
       if (menu) {

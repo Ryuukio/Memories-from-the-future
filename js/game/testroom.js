@@ -172,14 +172,13 @@ const TestRoomState = (() => {
 
     render(ctx) {
       ctx.drawImage(bg, Camera.x, 0, Display.W, ROOM_H, 0, TOP, Display.W, ROOM_H);
-      // até a etapa 2 trazer o ciclo de andar, a Ellen só balança 1 px ao andar
-      const bob = ellen.moving && Math.floor(ellen.anim) % 2 === 1 ? -1 : 0;
+      const frame = ellen.moving ? Math.floor(ellen.anim * 2) % 4 : -1;
       const actors = [
-        { e: fabio, img: Chars.get('fabioNow')[fabio.face], bob: 0 },
-        { e: ellen, img: Chars.get('ellenNow')[ellen.face], bob }
+        { e: fabio, img: Chars.sprite('FABIO_NOW', { dir: fabio.face }) },
+        { e: ellen, img: Chars.sprite('ELLEN_NOW', { dir: ellen.face, frame }) }
       ].sort((p, q) => p.e.y - q.e.y);
       actors.forEach(({ e }) => Gfx.shadow(e.x - Camera.x, TOP + e.y - 1, 12, 4));
-      actors.forEach(({ e, img, bob: b }) => Gfx.draw(img, e.x - 8 - Camera.x, TOP + e.y - 31 + b));
+      actors.forEach(({ e, img }) => Gfx.draw(img, e.x - 8 - Camera.x, TOP + e.y - 31));
       if (Debug.flags.boxes) drawBoxes(ctx);
       Hud.draw(0, Hud.today(), 'Test room', 0);
     },

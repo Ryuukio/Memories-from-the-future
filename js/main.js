@@ -16,6 +16,12 @@
   Input.hotkey(cfg.debug.skipKeys, () => Game.skip(), true);
 
   Debug.addJump('Go to: Title screen', () => Game.go('title'));
+  // um destino para cada cenário que já tem arquivo em data/scenes
+  cfg.stages.forEach(st => st.scenes.forEach(s => {
+    if (window.SCENES && SCENES[s.code]) {
+      Debug.addJump('Go to: ' + s.code + ' · ' + s.title, () => { Flow.memory = st.id - 1; Flow.startScene(s.code); });
+    }
+  }));
   Debug.addJump('Go to: Test room', () => Game.go('testroom'));
 
   Game.go('title', {}, { instant: true });

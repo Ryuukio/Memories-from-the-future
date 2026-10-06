@@ -35,8 +35,14 @@ window.GAME_CONFIG = {
 
   difficulty: {
     coneHalfAngleDeg: 30, coneLength: 72,              // cone de visão padrão (meia-abertura em graus, alcance em px)
-    suspicionUpPerSec: 1.0, suspicionDownPerSec: 0.5,  // estágios de suspeita (0 a 3) por segundo
-    walkSpeed: 60, runSpeed: 110                       // velocidade da Ellen, em px por segundo
+    coneRays: 24,                                      // raios por cone (o cone é cortado por paredes e móveis altos)
+    // estágios de suspeita (0 a 3) por segundo. O SPEC sugeria subir 1.0/s, mas assim ninguém é pega
+    // no F1 A1 nem parada no corredor (a varredura nunca fica 3 s seguidos em cima dela).
+    // Com 2.0: esperar a janela é seguro, passar na hora errada dá um susto ("??!!") e quem hesita é pega.
+    suspicionUpPerSec: 2.0, suspicionDownPerSec: 0.5,
+    walkSpeed: 60, runSpeed: 110,                      // velocidade da Ellen, em px por segundo
+    caughtPause: 0.5,                                  // ao ser pega: pausa curta antes do flash (s)
+    caughtLineSeconds: 1.4                             // quanto tempo a fala do Fabio fica na tela depois de escrita (s)
   },
 
   // atalhos de teste (só para o Fabio): menu de teste e atalho de emergência
@@ -60,7 +66,8 @@ window.GAME_CONFIG = {
     {
       id: 1, title: "The First Date",
       scenes: [
-        { code: "F1A1", date: "16/08/2025", title: "Okonomiyaki", line: { who: "Ellen", text: "This was our first date. You prepared the best okonomiyaki." } },
+        { code: "F1A1", date: "16/08/2025", title: "Okonomiyaki", line: { who: "Ellen", text: "This was our first date. You prepared the best okonomiyaki." },
+          sign: "OKONOMIYAKI" },   // placa na parede do restaurante
         { code: "F1A2", date: "16/08/2025", title: "Ice cream at Mirai Tower", line: { who: "Ellen", text: "We came to have ice cream as dessert, and a good view." } },
         { code: "F1B1", date: "16/08/2025", title: "Iced tea at the café", line: { who: "Fabio", text: "Iced tea... The conversation seems to be going so well." } },
         { code: "F1B2", date: "16/08/2025", title: "Planetarium", line: { who: "Ellen", text: "This was where we had our first kiss." } },
