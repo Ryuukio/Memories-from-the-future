@@ -185,7 +185,8 @@ const Guard = (() => {
       if (g.pose === 'swim') return Chars.sprite(def.who, { pose: 'swim', dir: lookDir, frame: Math.floor(g.time * 4) % 4, eyes });
       if (g.pose === 'sit') {
         const frame = (g.anim === 'cook' || g.anim === 'eat') && Math.floor(g.time / (g.anim === 'eat' ? 0.5 : 0.35)) % 2 ? 1 : 0;
-        return Chars.sprite(def.who, { pose: 'sit', dir: g.face, head: g.head || lookDir, frame, eyes });
+        // quem vai junto com outro (no barco) senta virado para onde olha
+        return Chars.sprite(def.who, { pose: 'sit', dir: def.ride ? lookDir : g.face, head: g.head || lookDir, frame, eyes });
       }
       const frame = g.moving ? Math.floor(g.dist / 8) % 4 : -1;
       // parado, quem não vigia (garçom) olha para `face`; vigias olham para o cone
