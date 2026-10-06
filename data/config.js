@@ -85,10 +85,12 @@ window.GAME_CONFIG = {
       scenes: [
         { code: "F2A1", date: "24/08/2025", title: "Beach day", line: { who: "Fabio", text: "The sea! I think they are having so much fun." } },
         { code: "F2A2", date: "24/08/2025", title: "Shaved ice by the sea", line: { who: "Fabio", text: "Pink shaved ice. Is that my favourite?" } },
-        { code: "F2B1", date: "30/08/2025", title: "Cinema: Kimetsu no Yaiba", line: { who: "Ellen", text: "Movie time! We came to watch an anime movie." } },
+        { code: "F2B1", date: "30/08/2025", title: "Cinema: Kimetsu no Yaiba", line: { who: "Ellen", text: "Movie time! We came to watch an anime movie." },
+          boothText: "TICKETS" },   // placa da bilheteria
         { code: "F2B2", date: "30/08/2025", title: "Cinema: popcorn", line: { who: "Fabio", text: "What a great smell! Popcorn. Large. Obviously." } },
         { code: "F2C1", date: "05/09/2025", title: "Corona days", line: { who: "Fabio", text: "Poor guy. And an angel looking after him." } },
-        { code: "F2C2", date: "06/09/2025", title: "Brazilian Day", line: { who: "Fabio", text: "I smell BBQ... and Guaraná!" } }
+        { code: "F2C2", date: "06/09/2025", title: "Brazilian Day", line: { who: "Fabio", text: "I smell BBQ... and Guaraná!" },
+          stall1: "Pastel", stall2: "Coxinha", stall3: "Guaraná" }   // placas das barracas
       ],
       chest: { item: "MOUNJARO", icon: "mounjaro", text: "You found MOUNJARO. \"Reduces cravings.\" Might come in handy." },
       memoryLine: "The beach, the cinema... you looking after me when I was ill. I remember!",

@@ -23,7 +23,10 @@
 // Fase 1, depois do balanceamento: andando reto sem olhar, ela é pega em 11% a 21% das fases do
 // loop de cada cenário; esperando a janela, passa sempre (6 a 9,5 s jogando perfeito).
 
-window.__snap = (sx = 0, sy = 0, sw = 384, sh = 216, sc = 3) => {
+window.__snap = (sx = 0, sy = 0, sw = 384, sh = 216, sc = 0) => {
+  // sc = 0: a maior escala inteira que cabe na largura da janela
+  // (o print do painel mostra no máximo ~800×600 da janela)
+  if (!sc) sc = Math.max(1, Math.floor(Math.min(Math.min(innerWidth, 790) * devicePixelRatio / sw, Math.min(innerHeight, 590) * devicePixelRatio / sh)));
   let o = document.getElementById('__snap');
   if (!o) { o = document.createElement('canvas'); o.id = '__snap'; document.body.appendChild(o); }
   o.style.cssText = 'position:fixed;left:0;top:0;z-index:9999;image-rendering:pixelated;background:#000;width:100vw;height:100vh';
@@ -85,7 +88,8 @@ window.__plan = (codes, si, o = {}) => {
     const sight = room.sight.concat(room.movers.filter(m => m.blocksSight).map(m => m.rect()));
     const cones = room.guards.map(g => { Vision.cast(g.cone(), sight, 24); return g; }).filter(g => g.coneActive()).map(g => g._cone);
     const seen = new Uint8Array(W * H), block = new Uint8Array(W * H);
-    const mrect = room.movers.filter(m => m.block).map(m => m.rect());
+    const mrect = room.movers.filter(m => m.block).map(m => m.rect())
+      .concat(room.guards.filter(g => g.pose !== 'sit' && g.pose !== 'lie' && !g.def.ride).map(g => g.rect()));
     for (let k = 0; k < W * H; k++) {
       if (!walk[k]) continue;
       const x = px(k % W), y = py((k / W) | 0);
@@ -220,3 +224,46 @@ window.__st = () => {
 // teleporta a Ellen (e o Fabio) para (x, y) da sala
 window.__tp = (x, y) => { const s = StealthState.inspect(); s.ellen.x = x; s.ellen.y = y; s.fabio.x = x - 18; s.fabio.y = y; Camera.follow(x, s.room.w); };
 'devtools ok';
+
+// fileira de roupas para conferir os sprites: cada roupa de frente, de lado, de costas e sentada
+window.__lineup = (ids, bg = '#5A6A7A') => {
+  const c = Gfx.ctx;
+  Gfx.rect(0, 0, 384, 216, bg);
+  ids.forEach((id, i) => {
+    const x = 6 + (i % 6) * 63, y = 4 + Math.floor(i / 6) * 70;
+    [['down', -1], ['right', -1], ['up', -1]].forEach(([dir], k) => c.drawImage(Chars.sprite(id, { dir }), x + k * 15, y));
+    c.drawImage(Chars.sprite(id, { pose: 'sit', dir: 'right' }), x + 45, y);
+    c.drawImage(Chars.sprite(id, { dir: 'right', frame: 0 }), x, y + 33);
+    c.drawImage(Chars.sprite(id, { pose: 'floor', dir: 'down' }), x + 15, y + 33);
+    Gfx.text(id.replace(/^(FABIO|ELLEN)_/, '$1 '), x, y + 62, '#FFFFFF');
+  });
+  return 'ok';
+};
+
+// Como o __naive, mas seguindo uma rota de pontos [[x, y], ...] (coordenadas do cenário), sem
+// esperar: devolve a suspeita máxima para cada fase t0 do loop (3 = pega).
+window.__route = (codes, si, period, pts, o = {}) => {
+  const res = [];
+  for (let t0 = 0; t0 < period; t0 += (o.step || 1)) {
+    const room = Room.build(codes), ox = si * 384, all = room.movers.concat(room.guards);
+    all.forEach(g => { g.reset(); g.sus = 0; });
+    for (let t = 0; t < t0; t += 0.25) all.forEach(g => g.update(Math.min(0.25, t0 - t)));
+    const speed = o.run ? 110 : 60, dt = 1 / 30;
+    let k = 0, x = ox + pts[0][0], y = pts[0][1], maxSus = 0;
+    for (let steps = 0; k < pts.length - 1 && steps < 3000; steps++) {
+      all.forEach(g => g.update(dt));
+      const tx = ox + pts[k + 1][0], ty = pts[k + 1][1], d = Math.hypot(tx - x, ty - y), v = speed * dt;
+      if (d <= v) { x = tx; y = ty; k++; } else { x += (tx - x) / d * v; y += (ty - y) / d * v; }
+      const sight = room.sight.concat(room.movers.filter(m => m.blocksSight).map(m => m.rect()));
+      room.guards.forEach(g => {
+        Vision.cast(g.cone(), sight, 24);
+        const seen = g.coneActive() && [[0, -2], [-4, -2], [4, -2]].some(([a, c]) => Vision.inside(g._cone, x + a, y + c));
+        g.sus = seen ? Math.min(3, g.sus + 2 * dt) : Math.max(0, g.sus - 0.5 * dt);
+        maxSus = Math.max(maxSus, g.sus);
+      });
+      if (maxSus >= 3) break;
+    }
+    res.push(+maxSus.toFixed(1));
+  }
+  return res.join(' ');
+};

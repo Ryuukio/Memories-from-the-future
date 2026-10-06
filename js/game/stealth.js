@@ -45,6 +45,14 @@ const StealthState = (() => {
       const r = room.movers[i].rect();
       if (overlap(h, r) && !overlap(now, r)) return true;
     }
+    // os vigias em pé (andando ou parados) também ocupam lugar; sentados e deitados já têm o
+    // lugar deles no cenário
+    for (let i = 0; i < room.guards.length; i++) {
+      const g = room.guards[i];
+      if (g.pose === 'sit' || g.pose === 'lie' || g.def.ride) continue;
+      const r = g.rect();
+      if (overlap(h, r) && !overlap(now, r)) return true;
+    }
     return false;
   }
 
