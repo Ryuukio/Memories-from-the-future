@@ -101,7 +101,8 @@ window.GAME_CONFIG = {
       scenes: [
         { code: "F3A1", dates: ["04/11/2025", "27/11/2025"], title: "Birthdays",
           lines: [{ who: "Fabio", text: "My birthday! The One Piece party!" },
-                  { who: "Fabio", text: "Your birthday. Pizza AND cake. Respect." }] },
+                  { who: "Fabio", text: "Your birthday. Pizza AND cake. Respect." }],
+          banner: "HAPPY BIRTHDAY" },   // faixa na cozinha do aniversário do Fabio
         { code: "F3A2", date: "06/12/2025", title: "Shirakawa-go", line: { who: "Fabio", text: "Snow on the roofs. It looks like a fairy tale." } },
         { code: "F3B1", date: "31/01/2026", title: "Ski trip", line: { who: "Fabio", text: "Me? Skiing? Gracefully, I hope." } },
         { code: "F3B2", date: "01/03/2026", title: "BBQ with friends", line: { who: "Fabio", text: "The smell is amazing! They are having so much fun." } },
