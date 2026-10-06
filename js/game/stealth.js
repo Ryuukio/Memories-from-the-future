@@ -3,10 +3,20 @@
 // cone, a suspeita do vigia sobe; no estágio 3 ela é pega e volta ao começo do cenário em que
 // está, e os loops dos vigias recomeçam.
 //
-// O mesmo estado anda também pelo corredor entre as salas (zona segura) e pela salinha do baú.
+// O mesmo estado anda também pelo corredor entre as salas (zona segura), pela salinha do baú e
+// pelas cenas da história (prólogo e livraria, etapa 5).
 // Game.go('stealth', { stage: 1, kind: 'room', room: 0, codes: ['F1A1', 'F1A2'], at: 0, intro })
-//   kind   'room' (memória), 'hall' (corredor) ou 'chest' (salinha do baú)
-//   at     cenário de entrada; intro = falas antes de começar (chegada ao passado)
+//   kind     'room' (memória), 'hall' (corredor), 'chest' (salinha do baú) ou 'story' (prólogo,
+//            livraria: sem vigias, sem salvar sozinho)
+//   at       cenário de entrada; intro = falas antes de começar (chegada ao passado)
+// Só nas cenas da história:
+//   player   false = sem a Ellen e o Fabio do presente (cenas só com os atores do cenário)
+//   hud      false = sem o HUD; title/date = legenda do HUD (livraria: "Here and now" e a data de hoje)
+//   script   falas ao entrar; [ação] chama Story.action (efeitos, atores aparecendo, poses) ou
+//            actions[nome](resume) do Flow; then() quando acabam
+//   onInteract(kind)  ao apertar Espaço perto de um objeto com `interact` (a máquina do tempo)
+//   onExit()          ao chegar na saída (look.exitZone ou a passagem da direita: a escada)
+//   marker: [x, y]    seta piscando em cima de um ponto (a escada, depois da batalha)
 const StealthState = (() => {
   const TOP = Hud.H, VIEW_W = Display.W, VIEW_H = Display.H - Hud.H;
   const FOLLOW = 18;   // distância do Fabio atrás da Ellen, medida pelo caminho que ela fez
@@ -143,7 +153,7 @@ const StealthState = (() => {
   function enterScene(i) {
     cur = i;
     const s = room.scenes[i];
-    if (params.kind === 'hall') return;
+    if (params.kind === 'hall' || params.kind === 'story') return;
     if (params.kind === 'chest') {
       Save.write({ stage: params.stage, scene: 'CHEST', memory: Flow.memory });
       return;
@@ -159,7 +169,8 @@ const StealthState = (() => {
   function exitRoom() {
     phase = 'exit';
     Sound.sfx('door');
-    Flow.roomDone(params);
+    if (params.onExit) params.onExit();
+    else Flow.roomDone(params);
   }
 
   // ---------- vigias, cones e detecção ----------
@@ -251,6 +262,11 @@ const StealthState = (() => {
       ellen.moving = false;
       fabio.moving = false;
       Chest.open(params.stage, it.p, () => Flow.chestDone(params.stage));
+    } else if (params.onInteract) {
+      it.p.used = true;
+      ellen.moving = false;
+      fabio.moving = false;
+      params.onInteract(it.kind, it);
     }
   }
 
@@ -313,6 +329,7 @@ const StealthState = (() => {
 
   function hudTitle() {
     const st = GAME_CONFIG.stages[params.stage - 1] || {};
+    if (params.title !== undefined) return { date: params.date || '', title: params.title };
     if (params.kind !== 'room') return { date: '', title: st.title || '' };
     const s = room.scenes[cur].cfg;
     return { date: s.date || (s.dates ? s.dates[secondHalf() ? 1 : 0] : ''), title: s.title };
@@ -322,14 +339,22 @@ const StealthState = (() => {
     pausable: true,
 
     enter(p) {
-      params = Object.assign({ kind: 'room' }, p);
+      params = Object.assign({ kind: 'room', player: true, hud: true }, p);
       room = Room.build(params.codes);
+      if (params.exitZone) room.exit = params.exitZone;
       entered = {};
       time = 0;
       flash = 0;
       phase = 'play';
+      Story.reset(room, params);
       placeAt(params.at || 0);
-      if (params.intro && params.intro.length) {
+      if (params.script) {
+        cur = params.at || 0;
+        Dialog.say(params.script, {
+          onAction: (name, resume) => Story.action(name, resume),
+          onDone: () => { if (params.then) params.then(); }
+        });
+      } else if (params.intro && params.intro.length) {
         // chegada ao passado: as falas vêm antes da fala de entrada do cenário
         Dialog.say(params.intro, { onDone: () => enterScene(params.at || 0) });
         cur = params.at || 0;
@@ -342,12 +367,14 @@ const StealthState = (() => {
       time += dt;
       world.t = time;
       flash = Math.max(0, flash - dt / 0.3);
+      Story.update(dt);
       if (phase === 'caught') { updateCaught(dt); return; }
       if (phase === 'chest') { Chest.update(dt); return; }
       if (phase !== 'play') return;
 
       room.movers.forEach(m => m.update(dt));
       room.guards.forEach(g => g.update(dt));
+      if (!params.player) return;
 
       // a Ellen: 8 direções, Shift corre; terreno lento e água mudam a velocidade
       const a = Input.axis();
@@ -384,10 +411,14 @@ const StealthState = (() => {
     idle(dt) {
       time += dt;
       world.t = time;
+      Story.update(dt);
       if (phase === 'chest') Chest.idle(dt);
     },
 
     render(ctx) {
+      const shake = Story.shake();
+      ctx.save();
+      ctx.translate(shake[0], shake[1]);
       const cam = Camera.x;
       ctx.drawImage(room.bg, cam, 0, VIEW_W, VIEW_H, 0, TOP, VIEW_W, VIEW_H);
 
@@ -404,18 +435,20 @@ const StealthState = (() => {
 
       const list = [];
       room.sorted.forEach(o => {
-        if (!visible(o.x, o.w)) return;
+        if (!visible(o.x, o.w) || (o.p && o.p.hidden)) return;
         if (o.p && Scenery.props[o.p.type].live) list.push({ z: o.z, draw: () => Scenery.props[o.p.type].live(ctx, o.p, world, o.img) });
         else list.push({ z: o.z, draw: () => ctx.drawImage(o.img, o.x, o.y) });
       });
       room.npcs.forEach(n => {
-        if (visible(n.x - 16, 32)) list.push({ z: n.y, draw: () => Chars.draw(ctx, Room.npcSprite(n, time), n.x, n.y, { chair: n.chair, dir: n.dir, pose: n.pose, shadow: shadowAt(n.x), wade: n.wade, gear: n.gear, look: n.dir, t: time }) });
+        if (!n.hidden && visible(n.x - 16, 32)) list.push({ z: n.y, draw: () => Chars.draw(ctx, Room.npcSprite(n, time), n.x, n.y, { chair: n.chair, dir: n.dir, pose: n.pose, shadow: shadowAt(n.x), wade: n.wade, gear: n.gear, look: n.dir, t: time }) });
       });
       room.guards.concat(room.movers).forEach(g => list.push({ z: g.z(), draw: () => g.draw(ctx, shadowAt(g.x), world) }));
       const fFrame = fabio.moving ? Math.floor(fabio.dist / STRIDE) % 4 : -1;
       const eFrame = ellen.moving ? Math.floor(ellen.dist / STRIDE) % 4 : -1;
-      list.push({ z: fabio.y, draw: () => Chars.draw(ctx, Chars.sprite('FABIO_NOW', { dir: fabio.dir, frame: fFrame }), fabio.x, fabio.y, { shadow: shadowAt(fabio.x) }) });
-      list.push({ z: ellen.y, draw: () => Chars.draw(ctx, Chars.sprite('ELLEN_NOW', { dir: ellen.dir, frame: eFrame }), ellen.x, ellen.y, { shadow: shadowAt(ellen.x) }) });
+      if (params.player) {
+        list.push({ z: fabio.y, draw: () => Chars.draw(ctx, Chars.sprite('FABIO_NOW', { dir: fabio.dir, frame: fFrame }), fabio.x, fabio.y, { shadow: shadowAt(fabio.x) }) });
+        list.push({ z: ellen.y, draw: () => Chars.draw(ctx, Chars.sprite('ELLEN_NOW', { dir: ellen.dir, frame: eFrame }), ellen.x, ellen.y, { shadow: shadowAt(ellen.x) }) });
+      }
       list.sort((p, q) => p.z - q.z).forEach(o => o.draw());
 
       drawSteam(ctx);
@@ -429,12 +462,20 @@ const StealthState = (() => {
         const top = g.headTop();
         Guard.bubble(ctx, top.x, top.y, g.stage(), time);
       });
+      if (params.marker) Story.marker(ctx, params.marker[0], params.marker[1], time);
       if (Debug.flags.boxes) drawDebug(ctx);
       ctx.restore();
 
+      Story.render(ctx, cam);
+      ctx.restore();
       if (phase === 'chest') Chest.render(ctx);
-      const h = hudTitle();
-      Hud.draw(params.stage, h.date, h.title, Flow.memory);
+      if (params.hud) {
+        const h = hudTitle();
+        Hud.draw(params.stage, h.date, h.title, Flow.memory);
+      } else {
+        // cenas da história sem HUD: faixa preta de cinema no lugar dele
+        Gfx.rect(0, 0, Display.W, TOP, '#07060E');
+      }
 
       if (flash > 0) {
         ctx.globalAlpha = flash;
@@ -450,6 +491,15 @@ const StealthState = (() => {
     skip() {
       if (phase === 'chest') { Chest.skip(); return; }
       if (phase !== 'play') return;
+      if (params.kind === 'story') {
+        // cena da história: pula as falas (e os efeitos), e depois a cena
+        Dialog.close();
+        Story.reset(room, params, true);
+        if (params.script && params.then) { const f = params.then; params.then = null; f(); return; }
+        if (params.onSkip) params.onSkip();
+        else if (params.onExit) params.onExit();
+        return;
+      }
       Dialog.close();
       if (params.kind === 'chest') {
         const it = room.interact.find(i => !i.p.used);

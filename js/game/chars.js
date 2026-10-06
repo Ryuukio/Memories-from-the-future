@@ -20,7 +20,8 @@
 // cabeça: SPRITES.NOME = { down: [linhas], side: [linhas, virado para a direita], up: [linhas],
 // dy: 0, under: false }. As linhas têm 16 colunas e começam na linha dy do sprite (0 = topo da
 // cabeça); under: true = só onde está vazio (rabo de cavalo atrás da cabeça). As letras novas
-// (x, y, z, X, Y, Z, t, T, i, I...) ganham cor na paleta da roupa.
+// (x, y, z, X, Y, Z, t, T, i, I...) ganham cor na paleta da roupa (nas roupas com `colors`, em
+// `add: { x: '#...' }`).
 // Chars.HEADS, Chars.BODIES e Chars.PATTERNS aceitam cabeças, corpos e estampas novas.
 const Chars = (() => {
   const cache = {};
@@ -100,7 +101,7 @@ const Chars = (() => {
       const p = o.palette || expand(o.colors, o.head === 'woman' || o.head === 'ellen');
       // cordões do moletom (W) e curativo (w): quem não tem fica com a cor da roupa;
       // antebraço (v/V): quem não diz fica com o braço de fora
-      o._palette = Object.assign({ w: p.c, W: p.c, v: p.s, V: p.S }, p);
+      o._palette = Object.assign({ w: p.c, W: p.c, v: p.s, V: p.S }, p, o.add || {});
     }
     return o;
   }

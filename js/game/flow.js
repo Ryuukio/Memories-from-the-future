@@ -3,7 +3,9 @@
 // baú → tela da máquina → tela preta → próxima fase. As salas saem da lista de cenários de
 // cada fase no config.js, em pares (A1+A2, B1+B2, C1+C2), só com os cenários que já têm
 // arquivo em data/scenes. O corredor (HALL) e a salinha do baú (CHEST) também são cenários.
-// Etapa 5: o prólogo antes da fase 1 e a livraria-café depois da fase 4.
+// Antes da fase 1, o prólogo (lanchonete → apartamento → laboratório, onde a jogadora aprende a
+// andar até a máquina); depois da fase 4, a livraria-café (fase 5) → batalha → final.
+// As cenas da história usam o mesmo estado do stealth (kind: 'story', ver stealth.js e story.js).
 const Flow = {
   memory: 0,   // segmentos da barra de memória (0 a 5)
 
@@ -39,9 +41,95 @@ const Flow = {
     });
   },
 
-  // depois da fase 4: a livraria-café (etapa 5). Enquanto ela não existe, volta ao título.
+  // depois da fase 4: a livraria-café
   afterStages() {
-    Game.go(window.ShopState ? 'shop' : 'title');
+    this.shop();
+  },
+
+  // ---------- prólogo (seção 11.2) ----------
+  story(codes, o) {
+    Game.go('stealth', Object.assign({ kind: 'story', stage: 0, codes, player: false, hud: false }, o));
+  },
+
+  prologue() {
+    this.memory = 0;
+    Save.write({ stage: 0, scene: 'PROLOGUE', memory: 0 });
+    const P = GAME_CONFIG.texts.prologue;
+    const card = (text, then) => Game.go('card', { text, italic: true, seconds: 2.6, then });
+    this.story(['PRO1'], {
+      script: P.fastfood,
+      then: () => this.story(['PRO2'], {
+        script: P.apartment,
+        then: () => this.lab(1, () => card(P.card1, () => this.lab(2, () => card(P.card2, () => this.labWalk()))))
+      })
+    });
+  },
+
+  // o laboratório: parte 1 (Ellen platinada e o Tony) e parte 2 (meio a meio, o Tony e a Heymans)
+  lab(part, then) {
+    const P = GAME_CONFIG.texts.prologue;
+    this.story(['LAB'], {
+      cast: { ellen1: part === 1, ellen2: part === 2, tony: true, heymans: false },
+      setup: find => { find('machine').on = part - 1; },
+      script: part === 1 ? P.lab1 : P.lab2,
+      then
+    });
+  },
+
+  // parte 3: as últimas falas e a jogadora anda com a Ellen (e o Fabio atrás) até a máquina
+  labWalk() {
+    const P = GAME_CONFIG.texts.prologue;
+    this.story(['LAB'], {
+      player: true,
+      cast: { ellen1: false, ellen2: false, tony: true, heymans: true },
+      setup: find => { find('machine').on = 2; },
+      script: P.lab3,
+      then: () => {},
+      onInteract: kind => {
+        if (kind !== 'machine') return;
+        Dialog.say(['[shake]'].concat(P.machine, ['[flash]']), {
+          onAction: (name, resume) => Story.action(name, resume),
+          onDone: () => this.startStage(1)
+        });
+      },
+      onSkip: () => this.startStage(1)
+    });
+  },
+
+  // ---------- fase 5: a livraria-café, a batalha e o final (seções 6, 8, 11.8–11.10) ----------
+  shopParams(o) {
+    const sh = GAME_CONFIG.shop;
+    return Object.assign({ kind: 'story', stage: 5, codes: ['SHOP'], player: true, hud: true, title: sh.hudTitle, date: Hud.today() }, o);
+  },
+
+  shop() {
+    Save.write({ stage: 5, scene: 'SHOP', memory: this.memory });
+    const sh = GAME_CONFIG.shop;
+    Game.go('card', {
+      text: GAME_CONFIG.texts.stageCard.replace('{n}', 5).replace('{title}', sh.title),
+      then: () => Game.go('stealth', this.shopParams({ script: GAME_CONFIG.texts.shop, then: () => this.battle() }))
+    });
+  },
+
+  battle() {
+    this.memory = 5;
+    Save.write({ stage: 5, scene: 'BATTLE', memory: 5 });
+    Game.go('battle');
+  },
+
+  // depois da vitória: as falas do final, a seta pisca sobre a escada e a Ellen anda até lá
+  afterBattle() {
+    this.memory = 5;
+    Save.write({ stage: 5, scene: 'ENDING', memory: 5 });
+    const st = SCENES.SHOP.stairs;
+    Game.go('stealth', this.shopParams({
+      script: GAME_CONFIG.texts.ending.lines,
+      then: () => {},
+      marker: st.marker,
+      exitZone: { x: st.zone[0], y: st.zone[1], w: st.zone[2], h: st.zone[3] },
+      onExit: () => Game.go('ending'),
+      onSkip: () => Game.go('ending')
+    }));
   },
 
   // entra na sala que contém o cenário, começando por ele (continuar e modo de teste)
@@ -74,13 +162,17 @@ const Flow = {
   newGame() {
     Save.clear();
     this.memory = 0;
-    this.startStage(1);   // etapa 5: começar pelo prólogo
+    this.prologue();
   },
 
   continueGame(save) {
     this.memory = save.memory || 0;
     const stage = save.stage || 1;
-    if (save.scene === 'CHEST') this.chestRoom(stage);
+    if (save.scene === 'PROLOGUE') this.prologue();
+    else if (save.scene === 'SHOP') this.shop();
+    else if (save.scene === 'BATTLE') this.battle();
+    else if (save.scene === 'ENDING') this.afterBattle();
+    else if (save.scene === 'CHEST') this.chestRoom(stage);
     else if (save.scene === 'MACHINE') this.machine(stage);
     else if (!this.startScene(save.scene)) this.startStage(stage);
   },

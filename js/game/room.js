@@ -76,6 +76,8 @@ const Room = (() => {
       (data.props || []).forEach(p0 => {
         const p = Object.assign({}, p0, { x: ox + p0.x });
         if (p.textKey) p.text = s.cfg[p.textKey] || '';
+        // texto em outro lugar do config (ex.: 'texts.prologue.neonSign')
+        if (p.textPath) p.text = p.textPath.split('.').reduce((o, k) => (o ? o[k] : ''), GAME_CONFIG) || '';
         const g = Scenery.geometry(p), img = Scenery.render(p);
         if (g.solid) solid(g.solid, false);
         if (g.sight) room.sight.push(g.sight);

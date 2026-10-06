@@ -16,6 +16,8 @@
   Input.hotkey(cfg.debug.skipKeys, () => Game.skip(), true);
 
   Debug.addJump('Go to: Title screen', () => Game.go('title'));
+  Debug.addJump('Go to: Prologue', () => Flow.prologue());
+  Debug.addJump('Go to: Prologue · lab (walk to the machine)', () => { Flow.memory = 0; Flow.labWalk(); });
   // para cada fase: o cartão, cada cenário que já tem arquivo em data/scenes, o corredor, o baú e a máquina
   cfg.stages.forEach(st => {
     const built = st.scenes.filter(s => window.SCENES && SCENES[s.code]);
@@ -29,6 +31,10 @@
     Debug.addJump('Go to: Stage ' + n + ' chest', () => { Flow.memory = n - 1; Flow.chestRoom(n); });
     Debug.addJump('Go to: Stage ' + n + ' machine', () => { Flow.memory = n; Flow.machine(n); });
   });
+  Debug.addJump('Go to: Stage 5 · bookshop', () => { Flow.memory = 4; Flow.shop(); });
+  Debug.addJump('Go to: Battle', () => Flow.battle());
+  Debug.addJump('Go to: After the battle (stairs)', () => Flow.afterBattle());
+  Debug.addJump('Go to: Final screen', () => Game.go('ending'));
   Debug.addJump('Go to: Test room', () => Game.go('testroom'));
 
   Game.go('title', {}, { instant: true });

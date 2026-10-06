@@ -140,9 +140,14 @@ window.GAME_CONFIG = {
       fastfood: [
         "NARRATOR: Nagoya. An ordinary night.",
         "FABIO: Just one burger. Then I'm going home to Ellen.",
+        "[villainArrives]",          // as luzes piscam e o Big Jimmy Junk aparece
+        "[face:fabio:right]",
         "BIG JIMMY JUNK: Just one? Nobody stops at just one!",
+        "[smell]",                   // ondas de cheiro de fritura
         "BIG JIMMY JUNK used TEMPTATION!",
         "FABIO: My... memories... smell like... chips...",
+        "[pose:fabio:lie:left]",     // o Fabio desmaia
+        "[shake]",
         "NARRATOR: Fabio fell into a deep food coma. When he woke up, he couldn't remember anything. Not even her."
       ],
       neonSign: "JIMMY'S JUNK PALACE",
@@ -166,6 +171,7 @@ window.GAME_CONFIG = {
         "TONY: Good news: the machine works.",
         "TONY: Bad news: the test subjects did not enjoy the trip.",
         "ELLEN: Then we need someone who understands living things. I know exactly who to call.",
+        "[show:heymans]",            // a professora Heymans chega
         "HEYMANS: Ellen! My favourite student. So... you need a human to survive time travel?",
         "ELLEN: Two humans, actually."
       ],
@@ -241,7 +247,7 @@ window.GAME_CONFIG = {
         "BIG JIMMY JUNK used TEMPTATION! The smell of fresh chips fills the room...",
         "Ellen is TEMPTED! Her hands are shaking."
       ],
-      menu: { shoot: "SHOOT", bullets: "BULLETS: {n}", item: "ITEM", mounjaro: "MOUNJARO", ring: "MYSTERIOUS RING" },
+      menu: { prompt: "What will Ellen do?", shoot: "SHOOT", bullets: "BULLETS: {n}", item: "ITEM", mounjaro: "MOUNJARO", ring: "MYSTERIOUS RING" },
       // tiro errado (sorteado)
       miss: [
         "Missed! Ellen is thinking about chips.",

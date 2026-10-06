@@ -745,6 +745,89 @@ Object.assign(window.SPRITES, {
     ".............oao",
     ".............oao",
   ],
+  // ---------- prólogo: acessórios do Tony e da professora Heymans (extras das roupas) ----------
+  // barba grisalha cheia (b) do Tony, por cima da cabeça de homem
+  TONY_BEARD: {
+    down: [
+      "................", "................", "................", "................", "................",
+      "................", "................", "................", "................", "................",
+      ".obb........bbo.",
+      ".obbbbbSSbbbbbo.",
+      ".obbbbbmmbbbbbo.",
+      "..obbbbbbbbbbo..",
+      "...oobbbbbboo...",
+    ],
+    side: [
+      "................", "................", "................", "................", "................",
+      "................", "................", "................", "................",
+      "........bb......",
+      "........bbbbbbbo",
+      "........bbbbbmbo",
+      ".......obbbbbbo.",
+      ".......obbbbbo..",
+      ".......oobbbo...",
+    ],
+  },
+  // óculos redondos (g armação, l reflexo)
+  TONY_GLASSES: {
+    down: [
+      "................", "................", "................", "................", "................",
+      "................", "................",
+      "...ggggg.ggggg..",
+      "...gl..ggg..lg..",
+      "...g...g.g...g..",
+      "....ggg...ggg...",
+    ],
+    side: [
+      "................", "................", "................", "................", "................",
+      "................", "................",
+      "..........ggggo.",
+      "......gggggl..g.",
+      "..........g...g.",
+      "...........ggg..",
+    ],
+  },
+  // coque da professora Heymans (atrás da cabeça: aparece de lado e de costas)
+  HEYMANS_BUN: {
+    side: [
+      "................",
+      ".oooo...........",
+      "ojHHjo..........",
+      "ojhhjo..........",
+      "ojjjjo..........",
+      ".oooo...........",
+    ],
+    up: [
+      "................",
+      "................",
+      "......oooo......",
+      ".....oHHhjo.....",
+      ".....ohhhjo.....",
+      ".....ojjjjo.....",
+      "......oooo......",
+    ],
+    under: false,
+  },
+  // prancheta da Heymans (marrom com papel branco), na frente do corpo
+  HEYMANS_CLIPBOARD: {
+    dy: 18,
+    down: [
+      "........ooooo...",
+      "........oyyyo...",
+      "........oyzyo...",
+      "........oyyyo...",
+      "........oxxxo...",
+      "........ooooo...",
+    ],
+    side: [
+      "..........oooo..",
+      "..........oyyo..",
+      "..........ozyo..",
+      "..........oxxo..",
+      "..........oooo..",
+    ],
+  },
+
   // sentado de lado com o antebraço 1 px mais à frente (mexendo na chapa, comendo)
   BODY_SIT_REACH: [
     "...oQcuuuuo.....",
