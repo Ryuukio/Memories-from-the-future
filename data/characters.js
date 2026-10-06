@@ -37,14 +37,14 @@ window.CHARACTERS = {
   // camisa de botão azul com estampa floral do mesmo tom, short branco, tênis branco
   FABIO_F1: {
     head: 'fabio', body: 'reg',
-    palette: PALETTES.FABIO_F1,
+    palette: Object.assign({}, PALETTES.FABIO_F1, { v: '#D19A72', V: '#A9714F' }),   // manga curta
     patterns: [{ on: 'cau', color: '#8DB4EC', rule: 'floral' }]
   },
 
   // blusa canelada frente única azul, short jeans rasgado, cabelo meio a meio, óculos de grau
   ELLEN_F1: {
     head: 'ellen', body: 'slim', hair: 'half',
-    palette: PALETTES.ELLEN_F1,
+    palette: Object.assign({}, PALETTES.ELLEN_F1, { v: '#F6D7C6', V: '#E2B19F' }),   // frente única: braços de fora
     patterns: [
       { on: 'c', color: '#5089D2', rule: 'ribbed' },
       { on: 'p', color: '#DCE6F0', rule: 'rips' }
@@ -59,5 +59,14 @@ window.CHARACTERS = {
   CUSTOMER_GREY:  { head: 'man',   body: 'reg',  colors: { skin: '#E0B48E', hair: '#A3A2A8', top: '#7A5A3E', bottom: '#3A3A44', shoes: '#2A2630', sleeves: 'long' } },
   CUSTOMER_RED:   { head: 'man',   body: 'reg',  colors: { skin: '#D9A47E', hair: '#1E1A22', top: '#B8423E', bottom: '#2E3448', shoes: '#2A2630', sleeves: 'short' } },
   CUSTOMER_NAVY:  { head: 'woman', body: 'slim', colors: { skin: '#C98E66', hair: '#2A1E1A', top: '#2E4470', bottom: '#4A4A52', shoes: '#2A2630', sleeves: 'short' } },
-  CUSTOMER_LILAC: { head: 'woman', body: 'slim', colors: { skin: '#F2D2BC', hair: '#8A4E36', top: '#8A6AB8', bottom: '#E8E2D6', shoes: '#F0EEE8', sleeves: 'none', legs: 'bare' } }
+  CUSTOMER_LILAC: { head: 'woman', body: 'slim', colors: { skin: '#F2D2BC', hair: '#8A4E36', top: '#8A6AB8', bottom: '#E8E2D6', shoes: '#F0EEE8', sleeves: 'none', legs: 'bare' } },
+  CUSTOMER_BEIGE: { head: 'man',   body: 'reg',  colors: { skin: '#E8BC96', hair: '#2E2420', top: '#D8C8A4', bottom: '#4A4E5E', shoes: '#2A2630', sleeves: 'short' } },
+  CUSTOMER_PINK:  { head: 'woman', body: 'slim', colors: { skin: '#F4D6C2', hair: '#1E1A22', top: '#E888A8', bottom: '#3A3F5A', shoes: '#F0EEE8', sleeves: 'short' } },
+  CUSTOMER_MINT:  { head: 'woman', body: 'slim', colors: { skin: '#E8C0A0', hair: '#5A3A28', top: '#9AD8C0', bottom: '#E8E2D6', shoes: '#F0EEE8', sleeves: 'none', legs: 'bare' } },
+  CUSTOMER_BLACK: { head: 'man',   body: 'reg',  colors: { skin: '#C99070', hair: '#1A1416', top: '#2A2A32', bottom: '#5A6A8A', shoes: '#F0EEE8', sleeves: 'short' } },
+  CUSTOMER_ORANGE:{ head: 'man',   body: 'reg',  colors: { skin: '#F0C8A8', hair: '#8A5A3A', top: '#E8823A', bottom: '#E8E2D6', shoes: '#2A2630', sleeves: 'short', legs: 'bare' } },
+
+  // atendente do café (avental marrom) e garçom do Saizeriya (camisa branca, calça preta)
+  CAFE_STAFF:     { head: 'woman', body: 'slim', colors: { skin: '#F2D2BC', hair: '#3A2420', top: '#8A5A3A', inner: '#F2F0EA', bottom: '#5A3A2A', shoes: '#2A2630', sleeves: 'short' } },
+  WAITER:         { head: 'man',   body: 'reg',  colors: { skin: '#E0B48E', hair: '#1E1A22', top: '#F4F2EC', inner: '#2A2630', bottom: '#22232B', shoes: '#141218', sleeves: 'long' } }
 };

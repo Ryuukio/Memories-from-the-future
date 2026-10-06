@@ -8,8 +8,9 @@
 //     loop: [ { t: 4 }, { t: 0.5, look: 115, range: 72, half: 30 }, ... ] }
 // Cada passo do loop dura `t` segundos. Durante o passo, look, range, half e to: [x, y]
 // (andar até lá) vão do valor atual até o novo, com giro suave pelo lado mais curto.
-// Sem `look`, quem anda olha para onde está indo. pose, face, head, anim e cone
-// (false = olhos fechados) mudam no começo do passo.
+// Sem `look`, quem anda olha para onde está indo. pose ('sit', 'lie', 'stand'), face, head,
+// anim, eye, eyes ('closed' no beijo), fx ('heart' = coraçõezinhos subindo, em heartAt: [dx, dy])
+// e cone (false = olhos fechados) mudam no começo do passo.
 const Guard = (() => {
   const RAD = Math.PI / 180;
   const ease = p => p * p * (3 - 2 * p);
@@ -23,7 +24,7 @@ const Guard = (() => {
       g.i = i;
       g.st = 0;
       const s = def.loop[i] || {};
-      ['pose', 'face', 'anim'].forEach(k => { if (s[k] !== undefined) g[k] = s[k]; });
+      ['pose', 'face', 'anim', 'eye', 'eyes', 'fx'].forEach(k => { if (s[k] !== undefined) g[k] = s[k]; });
       if (s.head !== undefined) g.head = s.head;
       if (s.cone !== undefined) g.coneOn = s.cone;
       g.from = { look: g.look, range: g.range, half: g.half, x: g.x, y: g.y };
@@ -46,6 +47,9 @@ const Guard = (() => {
       g.face = def.face || 'down';
       g.head = def.head || null;
       g.anim = def.anim || null;
+      g.eye = def.eye || null;
+      g.eyes = def.eyes || 'open';
+      g.fx = def.fx || null;
       g.look = def.look !== undefined ? def.look : 90;
       g.range = def.range || d().coneLength;
       g.half = def.half || d().coneHalfAngleDeg;
@@ -91,7 +95,7 @@ const Guard = (() => {
 
     // cone no mundo: origem nos "olhos" (no chão, perto do corpo), ângulos em radianos
     g.cone = () => {
-      const eye = def.eye || (g.pose === 'sit' ? [0, -8] : [0, -3]);
+      const eye = g.eye || (g.pose === 'sit' ? [0, -8] : g.pose === 'lie' ? [0, -22] : [0, -3]);
       g._cone = g._cone || {};
       return Object.assign(g._cone, {
         x: g.x + eye[0], y: g.y + eye[1],
@@ -104,16 +108,21 @@ const Guard = (() => {
     g.stage = () => Math.min(3, Math.floor(g.sus));
 
     g.sprite = () => {
-      const lookDir = Chars.dirOf(g.look);
+      const lookDir = Chars.dirOf(g.look), eyes = g.eyes;
+      if (g.pose === 'lie') return Chars.sprite(def.who, { pose: 'lie', head: g.head || 'down', eyes });
       if (g.pose === 'sit') {
-        const frame = g.anim === 'cook' && Math.floor(g.time / 0.35) % 2 ? 1 : 0;
-        return Chars.sprite(def.who, { pose: 'sit', dir: g.face, head: g.head || lookDir, frame });
+        const frame = (g.anim === 'cook' || g.anim === 'eat') && Math.floor(g.time / (g.anim === 'eat' ? 0.5 : 0.35)) % 2 ? 1 : 0;
+        return Chars.sprite(def.who, { pose: 'sit', dir: g.face, head: g.head || lookDir, frame, eyes });
       }
       const frame = g.moving ? Math.floor(g.dist / 8) % 4 : -1;
-      return Chars.sprite(def.who, { dir: lookDir, frame });
+      // parado, quem não vigia (garçom) olha para `face`; vigias olham para o cone
+      return Chars.sprite(def.who, { dir: g.moving || !g.harmless ? lookDir : g.face, frame, eyes });
     };
 
-    g.draw = ctx => Chars.draw(ctx, g.sprite(), g.x, g.y, { chair: def.chair, dir: g.face, pose: g.pose });
+    g.draw = (ctx, shadow) => Chars.draw(ctx, g.sprite(), g.x, g.y, { chair: def.chair, dir: g.face, pose: g.pose, shadow });
+
+    // área no chão (para quem anda bloquear a passagem da Ellen)
+    g.rect = () => ({ x: g.x - 5, y: g.y - 6, w: 10, h: 6 });
 
     g.reset();
     return g;
@@ -139,5 +148,19 @@ const Guard = (() => {
     Gfx.text(text, bx + 4, by + 3, '#D8283C');
   }
 
-  return { create, bubble };
+  // coraçõezinhos subindo no beijo
+  const HEART = ['.#.#.', '#####', '#####', '.###.', '..#..'];
+  function hearts(ctx, x, y, t) {
+    for (let k = 0; k < 2; k++) {
+      const ph = (t * 0.6 + k * 0.5) % 1;
+      const hx = Math.round(x + Math.sin((t + k * 1.3) * 3) * 2) - 2, hy = Math.round(y - ph * 14);
+      ctx.globalAlpha = ph < 0.75 ? 1 : (1 - ph) * 4;
+      HEART.forEach((row, j) => {
+        for (let i = 0; i < 5; i++) if (row[i] === '#') Gfx.rect(hx + i, hy + j, 1, 1, j === 1 && i === 1 ? '#FFC2D2' : '#F0587E');
+      });
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  return { create, bubble, hearts };
 })();

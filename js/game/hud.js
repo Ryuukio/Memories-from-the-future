@@ -8,11 +8,16 @@ const Hud = {
     Gfx.vgrad(0, 0, Display.W, 23, '#24203F', '#16132B');
     Gfx.rect(0, 23, Display.W, 1, '#5B4F92');
 
+    // sem data (corredor, baú): "STAGE n · título da fase"
     let x = Gfx.text('STAGE ' + stage, 8, y, '#F2C14E', sh) + 5;
-    x = Gfx.text('·', x, y, '#CFC8E8', sh) + 5;
-    x = Gfx.text(date, x, y, '#CFC8E8', sh) + 5;
-    x = Gfx.text('·', x, y, '#CFC8E8', sh) + 5;
-    Gfx.text(title, x, y, '#FFF4DA', sh);
+    if (date) {
+      x = Gfx.text('·', x, y, '#CFC8E8', sh) + 5;
+      x = Gfx.text(date, x, y, '#CFC8E8', sh) + 5;
+    }
+    if (title) {
+      x = Gfx.text('·', x, y, '#CFC8E8', sh) + 5;
+      Gfx.text(title, x, y, '#FFF4DA', sh);
+    }
 
     const segX = Display.W - 8 - 5 * 10 - 4 * 4;
     Gfx.text('MEMORY', segX - 6, y, '#CFC8E8', { shadow: '#07060E', align: 'right' });

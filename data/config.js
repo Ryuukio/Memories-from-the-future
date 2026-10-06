@@ -61,6 +61,7 @@ window.GAME_CONFIG = {
   },
 
   // Fases 1 a 4. Os nichos (`niche`) servem só para o Fabio se organizar; o jogo não os mostra.
+  // chest.icon é o desenho do item no cartão do baú: revolver, mounjaro, ammo ou ring.
   // Respostas: o jogo ignora maiúsculas, acentos, espaços e pontuação.
   stages: [
     {
@@ -69,12 +70,13 @@ window.GAME_CONFIG = {
         { code: "F1A1", date: "16/08/2025", title: "Okonomiyaki", line: { who: "Ellen", text: "This was our first date. You prepared the best okonomiyaki." },
           sign: "OKONOMIYAKI" },   // placa na parede do restaurante
         { code: "F1A2", date: "16/08/2025", title: "Ice cream at Mirai Tower", line: { who: "Ellen", text: "We came to have ice cream as dessert, and a good view." } },
-        { code: "F1B1", date: "16/08/2025", title: "Iced tea at the café", line: { who: "Fabio", text: "Iced tea... The conversation seems to be going so well." } },
+        { code: "F1B1", date: "16/08/2025", title: "Iced tea at the café", line: { who: "Fabio", text: "Iced tea... The conversation seems to be going so well." },
+          windowText: "Une tasse de bonheur" },   // letreiro dourado (genérico) no vidro do café
         { code: "F1B2", date: "16/08/2025", title: "Planetarium", line: { who: "Ellen", text: "This was where we had our first kiss." } },
         { code: "F1C1", date: "16/08/2025", title: "Dinner at Saizeriya", line: { who: "Ellen", text: "It was the first time I'd been to Saizeriya." } },
         { code: "F1C2", date: "16/08/2025", title: "A kiss in the park", line: { who: "Fabio", text: "So many mosquit... Wait... are they...? OMG!" } }
       ],
-      chest: { item: "OLD REVOLVER", text: "You found an OLD REVOLVER. It looks completely useless. Better keep it anyway." },
+      chest: { item: "OLD REVOLVER", icon: "revolver", text: "You found an OLD REVOLVER. It looks completely useless. Better keep it anyway." },
       memoryLine: "Okonomiyaki, a tower, a kiss in the park... I remember our first date!",
       anomaly: { niche: "A16", clue: "The day it all began.", answers: ["HOKKAIDO", "HOKAIDO", "OFFICE", "WORK", "JOB"] }
     },
@@ -88,7 +90,7 @@ window.GAME_CONFIG = {
         { code: "F2C1", date: "05/09/2025", title: "Corona days", line: { who: "Fabio", text: "Poor guy. And an angel looking after him." } },
         { code: "F2C2", date: "06/09/2025", title: "Brazilian Day", line: { who: "Fabio", text: "I smell BBQ... and Guaraná!" } }
       ],
-      chest: { item: "MOUNJARO", text: "You found MOUNJARO. \"Reduces cravings.\" Might come in handy." },
+      chest: { item: "MOUNJARO", icon: "mounjaro", text: "You found MOUNJARO. \"Reduces cravings.\" Might come in handy." },
       memoryLine: "The beach, the cinema... you looking after me when I was ill. I remember!",
       anomaly: { niche: "B27", clue: "3³", answers: ["BRAZIL", "BRASIL", "RIO", "RIODEJANEIRO"] }
     },
@@ -104,7 +106,7 @@ window.GAME_CONFIG = {
         { code: "F3C1", date: "28/03/2026", title: "Himeji Castle", line: { who: "Fabio", text: "A white castle and cherry blossoms. Unreal." } },
         { code: "F3C2", date: "29/03/2026", title: "Nara", line: { who: "Fabio", text: "Careful. The deer here mean business." } }
       ],
-      chest: { item: "AMMO ×5", text: "You found AMMO ×5. Five bullets. Make them count." },
+      chest: { item: "AMMO ×5", icon: "ammo", text: "You found AMMO ×5. Five bullets. Make them count." },
       memoryLine: "Birthdays, snow, cherry blossoms... We did so much together.",
       anomaly: { niche: "F92", clue: "My initial. The year I was born.", answers: ["AUSTRALIA", "KANGAROO", "SYDNEY"],
                  extra: "Note: this memory hasn't happened... yet." }
@@ -119,7 +121,7 @@ window.GAME_CONFIG = {
         { code: "F4C1", date: "13/08/2026", title: "Yanai Goldfish Lantern Festival", line: { who: "Ellen", text: "We travelled for hours to come to my favourite festival." } },
         { code: "F4C2", date: "15/08/2026", title: "Tottori Sand Dunes", line: { who: "Ellen", text: "One of our happiest moments." } }
       ],
-      chest: { item: "MYSTERIOUS RING", text: "You found a MYSTERIOUS RING. It sparkles. It feels... important." },
+      chest: { item: "MYSTERIOUS RING", icon: "ring", text: "You found a MYSTERIOUS RING. It sparkles. It feels... important." },
       memoryLine: "Okinawa, the rings, the lanterns, the dunes... It's all coming back.",
       anomaly: { niche: "E73", clue: "Your initial. Your favourite numbers.", answers: ["LONDON", "LONDONEYE", "FERRISWHEEL"] }
     }

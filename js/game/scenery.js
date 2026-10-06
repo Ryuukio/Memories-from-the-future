@@ -6,9 +6,15 @@
 //   size(p)          → [w, h] do desenho (p = a instância, com as opções do cenário)
 //   solid(p)         → [x, y, w, h] colisão no chão, relativo ao canto do desenho (null = nenhuma)
 //   sight(p)         → [x, y, w, h] bloqueia a visão dos vigias (null = não bloqueia)
+//   base             altura da base para ordenar com os personagens (número ou função de p; padrão: h)
+//   hidden           true = não desenha nada parado (só colisão, ou só a animação fx)
 //   layer            'back' = pintado no fundo (parede, banco); 'sorted' (padrão) = ordenado pela base
 //   draw(c, p)       pinta no canvas c, a partir de (0, 0)
+//   live(ctx, p, world, img)   opcional: desenha a cada quadro, no lugar da imagem pronta (baú, porta)
+//   fx(ctx, p, world)          opcional: animação por cima (fxLayer 'top') ou no chão ('ground')
 // }
+// world = { t: tempo em segundos, ellen: { x, y } }. Coordenadas do mundo (a sala inteira).
+// Os outros arquivos scenery-*.js acrescentam pisos, paredes e objetos de cada fase.
 const Scenery = (() => {
   const R = Gfx.rect;
 
@@ -181,36 +187,57 @@ const Scenery = (() => {
     }
   };
 
-  // ---------- cadeiras: madeira clara, assento e encosto pretos ----------
-  const WOOD = '#B47A42', WOOD_D = '#8A5730', WOOD_DD = '#5E3A20';
-  const CUSH = '#2A2630', CUSH_H = '#4C4656', CUSH_D = '#1C1A21';
+  // ---------- cadeiras ----------
+  // okonomiyaki: madeira clara, assento e encosto pretos; cafe: madeira clara com encosto de
+  // ripas e assento creme (F1 B1)
+  const CHAIRS = {
+    okonomiyaki: { wood: '#B47A42', woodD: '#8A5730', woodDD: '#5E3A20', cush: '#2A2630', cushH: '#4C4656', cushD: '#1C1A21' },
+    cafe: { wood: '#E0B070', woodD: '#B98545', woodDD: '#8A5E2E', cush: '#EFE0BC', cushH: '#FFF6DE', cushD: '#CDBB92', slats: true }
+  };
 
   // Cadeira vista de lado, assento virado para a direita (encosto à esquerda). Mesmo canvas
   // de 16×32 do personagem sentado, para desenhar por baixo dele.
-  function chairSide(c) {
-    R(0, 12, 2, 16, WOOD_D, c);
-    R(1, 12, 1, 16, WOOD, c);
-    R(0, 14, 3, 9, CUSH, c);
-    R(0, 14, 3, 1, CUSH_H, c);
-    R(1, 25, 12, 2, CUSH, c);
-    R(1, 25, 12, 1, CUSH_H, c);
-    R(1, 27, 12, 1, WOOD, c);
-    R(2, 28, 1, 4, WOOD_D, c);
-    R(11, 28, 1, 4, WOOD_D, c);
+  function chairSide(c, style) {
+    const k = CHAIRS[style] || CHAIRS.okonomiyaki;
+    R(0, 12, 2, 16, k.woodD, c);
+    R(1, 12, 1, 16, k.wood, c);
+    if (k.slats) {
+      for (let y = 14; y < 24; y += 3) R(0, y, 3, 1, k.wood, c);
+    } else {
+      R(0, 14, 3, 9, k.cush, c);
+      R(0, 14, 3, 1, k.cushH, c);
+    }
+    R(1, 25, 12, 2, k.cush, c);
+    R(1, 25, 12, 1, k.cushH, c);
+    R(1, 27, 12, 1, k.wood, c);
+    R(2, 28, 1, 4, k.woodD, c);
+    R(11, 28, 1, 4, k.woodD, c);
   }
 
   // Encosto visto de trás (pessoa de costas para a câmera): desenhado por cima dela.
-  function chairBack(c) {
-    R(2, 19, 12, 11, WOOD_D, c);
-    R(2, 19, 12, 1, WOOD, c);
-    R(3, 20, 10, 8, CUSH, c);
-    R(3, 20, 10, 1, CUSH_H, c);
-    R(3, 27, 10, 1, CUSH_D, c);
-    R(3, 30, 1, 4, WOOD_DD, c);
-    R(12, 30, 1, 4, WOOD_DD, c);
+  function chairBack(c, style) {
+    const k = CHAIRS[style] || CHAIRS.okonomiyaki;
+    if (k.slats) {
+      R(2, 19, 12, 2, k.woodD, c);
+      R(2, 19, 12, 1, k.wood, c);
+      R(2, 21, 1, 9, k.woodD, c);
+      R(13, 21, 1, 9, k.woodD, c);
+      for (let x = 4; x < 13; x += 2) R(x, 21, 1, 7, k.wood, c);
+      R(2, 27, 12, 2, k.woodD, c);
+      R(2, 27, 12, 1, k.wood, c);
+      R(3, 29, 10, 1, k.cush, c);
+    } else {
+      R(2, 19, 12, 11, k.woodD, c);
+      R(2, 19, 12, 1, k.wood, c);
+      R(3, 20, 10, 8, k.cush, c);
+      R(3, 20, 10, 1, k.cushH, c);
+      R(3, 27, 10, 1, k.cushD, c);
+    }
+    R(3, 30, 1, 4, k.woodDD, c);
+    R(12, 30, 1, 4, k.woodDD, c);
   }
 
-  // cadeira vazia, de costas (encosto alto: bloqueia a visão)
+  // cadeira vazia, de costas (encosto alto: bloqueia a visão). p.style: estilo de CHAIRS
   props.chair = {
     size: () => [16, 34],
     solid: () => [3, 24, 10, 9],
@@ -220,10 +247,10 @@ const Scenery = (() => {
       alpha(c, 0.35, () => R(2, 31, 12, 3, '#140F1E', c));
       if (p.dir === 'right' || p.dir === 'left') {
         if (p.dir === 'left') { c.save(); c.translate(16, 0); c.scale(-1, 1); }
-        chairSide(c);
+        chairSide(c, p.style);
         if (p.dir === 'left') c.restore();
       } else {
-        chairBack(c);
+        chairBack(c, p.style);
       }
     }
   };
@@ -238,10 +265,10 @@ const Scenery = (() => {
       const w = p.w;
       R(0, 0, w, 14, '#2A2630', c);
       R(0, 0, w, 1, '#4C4656', c);
-      for (let x = 30; x < w - 4; x += 30) R(x, 2, 1, 11, CUSH_D, c);
+      for (let x = 30; x < w - 4; x += 30) R(x, 2, 1, 11, '#1C1A21', c);
       R(0, 14, w, 7, '#35303C', c);
       R(0, 14, w, 1, '#4C4656', c);
-      R(0, 21, w, 2, CUSH_D, c);
+      R(0, 21, w, 2, '#1C1A21', c);
       R(0, 23, w, 1, '#121016', c);
       alpha(c, 0.3, () => R(0, 24, w, 2, '#140F1E', c));
     }
@@ -351,6 +378,33 @@ const Scenery = (() => {
     }
   };
 
+  // ================= bordas laterais (com as passagens) =================
+  // EDGES[estilo](c, x, top, gap, side): x = coluna de 4 px da parede lateral, top = altura da
+  // parede do fundo, gap = [y0, y1] da passagem ou null, side = 'left' | 'right'.
+
+  // postes de madeira, com a luz quente entrando pela passagem
+  function woodEdge(colors) {
+    return (c, x, top, gap, side) => {
+      const segs = gap ? [[top - 8, gap[0]], [gap[1], 192]] : [[top - 8, 192]];
+      segs.forEach(([a, b]) => {
+        R(x, a, 4, b - a, colors[0], c);
+        R(side === 'left' ? x + 3 : x, a, 1, b - a, colors[1], c);
+        R(side === 'left' ? x + 1 : x + 2, a, 1, b - a, colors[2], c);
+      });
+      if (gap) {
+        glow(c, side === 'left' ? x : x - 8, gap[0] + 2, 12, gap[1] - gap[0] - 4, colors[3],
+          i => 0.55 * (side === 'left' ? 1 - i / 12 : i / 12));
+        R(x, gap[0] - 1, 4, 2, colors[1], c);
+        R(x, gap[1] - 1, 4, 2, colors[1], c);
+      }
+    };
+  }
+
+  const EDGES = {
+    wood: woodEdge(['#4A2B1C', '#2E190F', '#6A4129', '#C88A62']),
+    none: () => {}
+  };
+
   // ================= montagem =================
 
   // tamanho, colisão e bloqueio de visão de uma instância, já com a posição dela
@@ -363,44 +417,33 @@ const Scenery = (() => {
       def, w, h,
       solid: abs(def.solid ? def.solid(p) : null),
       sight: abs(def.sight ? def.sight(p) : null),
-      z: p.y + (def.base !== undefined ? def.base : h)
+      z: p.y + (typeof def.base === 'function' ? def.base(p) : def.base !== undefined ? def.base : h)
     };
   }
 
   function render(p) {
     const g = geometry(p), cv = Gfx.canvas(g.w, g.h);
-    g.def.draw(cv.cx, p);
+    if (g.def.draw) g.def.draw(cv.cx, p);
     return cv;
   }
 
   return {
-    hash, glow, props, geometry, render, planks, FLOORS, WALLS,
-    chairSide, chairBack,
-    // fundo de um cenário: piso + parede do fundo + paredes laterais com as portas
+    R, hash, glow, alpha, BAYER, props, geometry, render, planks, FLOORS, WALLS, EDGES, CHAIRS,
+    chairSide, chairBack, woodEdge,
+    // Fundo de um cenário: piso + parede do fundo + paredes laterais com as portas.
+    // FLOORS[nome] é uma tábua ({ tones, seam, grain }) ou uma função (c, x, y, w, h, look).
+    // WALLS[nome](c, x, w, h, look). A borda lateral é look.edge (ou look.edges.left/right).
     paintBase(c, ox, look) {
-      const wallH = look.wall.height;
-      planks(c, ox, wallH, 384, 192 - wallH, FLOORS[look.floor], ox + 1);
+      const wallH = look.wall.height, floor = FLOORS[look.floor];
+      if (typeof floor === 'function') floor(c, ox, wallH, 384, 192 - wallH, look);
+      else planks(c, ox, wallH, 384, 192 - wallH, floor, ox + 1);
       // sombra da parede no chão
-      alpha(c, 0.25, () => R(ox, wallH, 384, 2, '#140F1E', c));
-      WALLS[look.wall.style](c, ox, 384, wallH);
-      // postes laterais, com as passagens
-      const doors = look.doors || {};
-      [['left', ox], ['right', ox + 380]].forEach(([side, x]) => {
-        const gap = doors[side];
-        const segs = gap ? [[wallH - 8, gap[0]], [gap[1], 192]] : [[wallH - 8, 192]];
-        segs.forEach(([a, b]) => {
-          R(x, a, 4, b - a, '#4A2B1C', c);
-          R(side === 'left' ? x + 3 : x, a, 1, b - a, '#2E190F', c);
-          R(side === 'left' ? x + 1 : x + 2, a, 1, b - a, '#6A4129', c);
-        });
-        if (gap) {
-          // luz que entra pela passagem
-          const inward = side === 'left' ? 1 : -1;
-          glow(c, side === 'left' ? ox : ox + 372, gap[0] + 2, 12, gap[1] - gap[0] - 4, '#C88A62',
-            i => 0.55 * (inward > 0 ? 1 - i / 12 : i / 12));
-          R(x, gap[0] - 1, 4, 2, '#2E190F', c);
-          R(x, gap[1] - 1, 4, 2, '#2E190F', c);
-        }
+      if (look.wall.shadow !== false) alpha(c, 0.25, () => R(ox, wallH, 384, 2, '#140F1E', c));
+      WALLS[look.wall.style](c, ox, 384, wallH, look);
+      const doors = look.doors || {}, [b0, b1] = look.bounds || [0, 384];
+      ['left', 'right'].forEach(side => {
+        const style = (look.edges && look.edges[side]) || look.edge || 'wood';
+        EDGES[style](c, side === 'left' ? ox + b0 : ox + b1 - 4, wallH, doors[side] || null, side, look);
       });
     }
   };

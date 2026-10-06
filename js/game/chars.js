@@ -2,11 +2,13 @@
 // data/characters.js, com cache. Cada sprite tem 16×32 px; o ponto de apoio é o meio da base
 // (desenhe em x - 8, y - 31).
 //
-// Chars.sprite('ELLEN_NOW', { pose, dir, head, frame })
-//   pose   'walk' (padrão) ou 'sit' (sentado; dir = para onde o corpo está virado)
+// Chars.sprite('ELLEN_NOW', { pose, dir, head, frame, eyes })
+//   pose   'walk' (padrão), 'sit' (sentado; dir = para onde o corpo está virado) ou
+//          'lie' (deitado de barriga para cima, visto de cima; no beijo a cabeça vira para o lado)
 //   dir    'right' | 'left' | 'down' | 'up'
 //   head   para onde a cabeça olha (padrão: dir). Sentado de lado, a cabeça pode virar de frente.
 //   frame  andando: -1 parado, 0 a 3 o ciclo de 4 quadros; sentado: 0 normal, 1 braço à frente
+//   eyes   'closed' = olhos fechados (beijo)
 const Chars = (() => {
   const cache = {};
   const BLANK = '................';
@@ -18,13 +20,12 @@ const Chars = (() => {
     woman: { side: 'HEAD_ELLEN_SIDE', down: 'HEAD_ELLEN_FRONT', up: 'HEAD_ELLEN_BACK' }
   };
 
-  // Troncos e pernas de cada corpo. slim e reg ainda não têm tronco próprio para andar
-  // (nenhum vigia anda na etapa 2): usam o do jaleco e o do moletom, com as cores da roupa.
+  // troncos e pernas de cada corpo (slim e reg: camisa, blusa ou regata genérica)
   const BODIES = {
     coat:   { legs: 'SLIM', side: 'TORSO_COAT_SIDE',   down: 'TORSO_COAT_FRONT',   up: 'TORSO_COAT_BACK' },
     hoodie: { legs: 'REG',  side: 'TORSO_HOODIE_SIDE', down: 'TORSO_HOODIE_FRONT', up: 'TORSO_HOODIE_BACK', hood: true },
-    slim:   { legs: 'SLIM', side: 'TORSO_COAT_SIDE',   down: 'TORSO_COAT_FRONT',   up: 'TORSO_COAT_BACK' },
-    reg:    { legs: 'REG',  side: 'TORSO_HOODIE_SIDE', down: 'TORSO_HOODIE_FRONT', up: 'TORSO_HOODIE_BACK' }
+    slim:   { legs: 'SLIM', side: 'TORSO_SLIM_SIDE',   down: 'TORSO_SLIM_FRONT',   up: 'TORSO_SLIM_BACK' },
+    reg:    { legs: 'REG',  side: 'TORSO_REG_SIDE',    down: 'TORSO_REG_FRONT',    up: 'TORSO_REG_BACK' }
   };
 
   // ciclo de andar e quanto o tronco desce em cada quadro
@@ -69,6 +70,7 @@ const Chars = (() => {
       h: c.hair, H: light(c.hair, 0.2), j: dark(c.hair, 0.3),
       c: c.top, C: dark(c.top), Q: light(c.top), k: c.inner || c.top,
       u: bareArms ? c.skin : c.top, a: bareArms ? c.skin : c.top, A: bareArms ? S : dark(c.top),
+      v: c.sleeves === 'long' ? c.top : c.skin, V: c.sleeves === 'long' ? dark(c.top) : S,
       p: c.bottom, P: dark(c.bottom), n: bareLegs ? c.skin : c.bottom, N: bareLegs ? S : dark(c.bottom),
       f: c.shoes, F: dark(c.shoes, 0.25), w: '#F6F6F2', W: '#CFCFC5'
     };
@@ -79,26 +81,35 @@ const Chars = (() => {
     if (!o) throw new Error('Roupa desconhecida: ' + id);
     if (!o._palette) {
       const p = o.palette || expand(o.colors, o.head === 'woman' || o.head === 'ellen');
-      // cordões do moletom (W) e curativo (w): quem não tem fica com a cor da roupa
-      o._palette = Object.assign({ w: p.c, W: p.c }, p);
+      // cordões do moletom (W) e curativo (w): quem não tem fica com a cor da roupa;
+      // antebraço (v/V): quem não diz fica com o braço de fora
+      o._palette = Object.assign({ w: p.c, W: p.c, v: p.s, V: p.S }, p);
     }
     return o;
   }
 
-  function headRows(o, dir) {
+  // olhos fechados: de cada olho (2 px na vertical) sobra só o pixel de baixo
+  function closeEyes(rows) {
+    return rows.map((row, y) => row.replace(/e/g, (ch, x) => (rows[y + 1] && rows[y + 1][x] === 'e' ? 's' : ch)));
+  }
+
+  function headRows(o, dir, eyes) {
     const k = sideKey(dir);
     let rows = SPRITES[HEADS[o.head][k]];
     if (o.hair === 'half') rows = Gfx.swapRows(rows, 0, k === 'up' ? 5 : 6, HALF_HAIR);
     if (o.bandage) rows = Gfx.paintRow(Gfx.paintRow(rows, 3, 'w'), 4, 'W');
+    if (eyes === 'closed') rows = closeEyes(rows);
     return dir === 'left' ? flipRows(rows) : rows;
   }
 
   // monta as 32 linhas do sprite
-  function compose(o, pose, dir, head, frame) {
+  function compose(o, pose, dir, head, frame, eyes) {
     let rows = Array(32).fill(BLANK);
     let hdx = 0, hdy = 0;
 
-    if (pose === 'sit') {
+    if (pose === 'lie') {
+      rows = overlay(rows, SPRITES.BODY_LIE, 0, 15);
+    } else if (pose === 'sit') {
       if (dir === 'down') rows = overlay(rows, SPRITES.BODY_FRONT_SIT, 0, 15);
       else if (dir === 'up') rows = overlay(rows, SPRITES.BODY_BACK_SIT, 0, 15);
       else {
@@ -117,7 +128,7 @@ const Chars = (() => {
       if (b.hood && k === 'side') rows = overlay(rows, hoodRows(), 0, hdy);
       if (dir === 'left') rows = flipRows(rows);
     }
-    return overlay(rows, headRows(o, head), hdx, hdy);
+    return overlay(rows, headRows(o, head, eyes), hdx, hdy);
   }
 
   // capuz do moletom (Apêndice E): só onde a cabeça de lado é transparente
@@ -130,9 +141,9 @@ const Chars = (() => {
     }).join(''));
   }
 
-  function build(id, pose, dir, head, frame) {
+  function build(id, pose, dir, head, frame, eyes) {
     const o = outfit(id);
-    const rows = compose(o, pose, dir, head, frame);
+    const rows = compose(o, pose, dir, head, frame, eyes);
     const pats = o.patterns || [];
     const pattern = pats.length ? (ch, x, y) => {
       for (const p of pats) if (p.on.includes(ch) && PATTERNS[p.rule](x, y)) return p.color;
@@ -141,38 +152,48 @@ const Chars = (() => {
     return Gfx.buildSprite(rows, o._palette, { pattern });
   }
 
-  // cadeiras dos personagens sentados (madeira clara, assento e encosto pretos), do mesmo
-  // tamanho do sprite: de lado vai por baixo da pessoa; de costas, o encosto vai por cima
+  // Cadeiras dos personagens sentados, do mesmo tamanho do sprite: de lado vai por baixo da
+  // pessoa; de costas, o encosto vai por cima. chair: true = a do okonomiyaki (madeira clara,
+  // assento e encosto pretos), ou o nome de outro estilo de Scenery.CHAIRS (ex.: 'cafe').
   const chairs = {};
-  function chair(dir) {
-    if (!chairs[dir]) {
+  function chair(dir, style) {
+    style = typeof style === 'string' ? style : 'okonomiyaki';
+    const key = style + '|' + dir;
+    if (!chairs[key]) {
       const cv = Gfx.canvas(16, 34);
-      if (dir === 'up') Scenery.chairBack(cv.cx);
+      if (dir === 'up') Scenery.chairBack(cv.cx, style);
       else {
         if (dir === 'left') { cv.cx.translate(16, 0); cv.cx.scale(-1, 1); }
-        Scenery.chairSide(cv.cx);
+        Scenery.chairSide(cv.cx, style);
       }
-      chairs[dir] = cv;
+      chairs[key] = cv;
     }
-    return chairs[dir];
+    return chairs[key];
   }
 
   return {
-    // desenha com a sombra no chão e, se estiver sentado numa cadeira, a cadeira na ordem certa
+    // Desenha com a sombra no chão e, se estiver sentado numa cadeira, a cadeira na ordem certa.
+    // o.shadow: false = sem sombra; 'long' = esticada para baixo e para a direita (parque à tarde)
     draw(ctx, img, x, y, o = {}) {
       const sx = Math.round(x) - 8, sy = Math.round(y) - 31;
       const sitting = o.pose === 'sit', side = o.dir === 'left' || o.dir === 'right';
-      if (o.shadow !== false) Gfx.shadow(Math.round(x), Math.round(y) - (sitting ? 0 : 1), sitting ? 14 : 12, 4);
-      if (sitting && o.chair && side) ctx.drawImage(chair(o.dir), sx, sy);
+      if (o.shadow === 'long') {
+        Gfx.shadow(Math.round(x) + 2, Math.round(y), 12, 4);
+        Gfx.shadow(Math.round(x) + 7, Math.round(y) + 2, 12, 4, 0.2);
+      } else if (o.shadow !== false && o.pose !== 'lie') {
+        Gfx.shadow(Math.round(x), Math.round(y) - (sitting ? 0 : 1), sitting ? 14 : 12, 4);
+      }
+      if (sitting && o.chair && side) ctx.drawImage(chair(o.dir, o.chair), sx, sy);
       ctx.drawImage(img, sx, sy);
-      if (sitting && o.chair && o.dir === 'up') ctx.drawImage(chair('up'), sx, sy);
+      if (sitting && o.chair && o.dir === 'up') ctx.drawImage(chair('up', o.chair), sx, sy);
     },
 
     sprite(id, opts = {}) {
       const pose = opts.pose || 'walk', dir = opts.dir || 'down';
       const head = opts.head || dir, frame = opts.frame === undefined ? -1 : opts.frame;
-      const key = id + '|' + pose + '|' + dir + '|' + head + '|' + frame;
-      return cache[key] || (cache[key] = build(id, pose, dir, head, frame));
+      const eyes = opts.eyes || 'open';
+      const key = id + '|' + pose + '|' + dir + '|' + head + '|' + frame + '|' + eyes;
+      return cache[key] || (cache[key] = build(id, pose, dir, head, frame, eyes));
     },
 
     // direção (graus: 0 direita, 90 baixo, 180 esquerda, 270 cima) → 'right' | 'down' | 'left' | 'up'

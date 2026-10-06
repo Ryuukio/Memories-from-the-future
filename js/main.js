@@ -16,12 +16,19 @@
   Input.hotkey(cfg.debug.skipKeys, () => Game.skip(), true);
 
   Debug.addJump('Go to: Title screen', () => Game.go('title'));
-  // um destino para cada cenário que já tem arquivo em data/scenes
-  cfg.stages.forEach(st => st.scenes.forEach(s => {
-    if (window.SCENES && SCENES[s.code]) {
-      Debug.addJump('Go to: ' + s.code + ' · ' + s.title, () => { Flow.memory = st.id - 1; Flow.startScene(s.code); });
-    }
-  }));
+  // para cada fase: o cartão, cada cenário que já tem arquivo em data/scenes, o corredor, o baú e a máquina
+  cfg.stages.forEach(st => {
+    const built = st.scenes.filter(s => window.SCENES && SCENES[s.code]);
+    if (!built.length) return;
+    const n = st.id;
+    Debug.addJump('Go to: Stage ' + n + ' card', () => { Flow.memory = n - 1; Flow.startStage(n); });
+    built.forEach(s => {
+      Debug.addJump('Go to: ' + s.code + ' · ' + s.title, () => { Flow.memory = n - 1; Flow.startScene(s.code); });
+    });
+    Debug.addJump('Go to: Stage ' + n + ' corridor', () => { Flow.memory = n - 1; Flow.hall(n, Math.min(1, Flow.rooms(n).length - 1)); });
+    Debug.addJump('Go to: Stage ' + n + ' chest', () => { Flow.memory = n - 1; Flow.chestRoom(n); });
+    Debug.addJump('Go to: Stage ' + n + ' machine', () => { Flow.memory = n; Flow.machine(n); });
+  });
   Debug.addJump('Go to: Test room', () => Game.go('testroom'));
 
   Game.go('title', {}, { instant: true });
