@@ -15,7 +15,7 @@ const StealthState = (() => {
 
   let room = null, params = {};
   let ellen, fabio, trail, cur, entered, phase, timer, flash, time, sightNow;
-  let lastLine = -1, lineShown = false;
+  let lastLine = -1, lineShown = false, photobomb = false;
 
   const d = () => GAME_CONFIG.difficulty;
   const hitbox = (x, y) => ({ x: x - 5, y: y - 6, w: 10, h: 6 });
@@ -31,6 +31,7 @@ const StealthState = (() => {
     for (let i = 0; i < room.solids.length; i++) if (overlap(h, room.solids[i])) return true;
     const now = hitbox(ellen.x, ellen.y);
     for (let i = 0; i < room.movers.length; i++) {
+      if (!room.movers[i].block) continue;
       const r = room.movers[i].rect();
       if (overlap(h, r) && !overlap(now, r)) return true;
     }
@@ -76,6 +77,24 @@ const StealthState = (() => {
     const h = dx > 0 ? 'right' : 'left', v = dy > 0 ? 'down' : 'up';
     if ((cur === h && ax > 0 && ax >= ay * 0.5) || (cur === v && ay > 0 && ay >= ax * 0.5)) return cur;
     return ax >= ay ? h : v;
+  }
+
+  // Terreno onde a Ellen pisa (SPEC, seção 5):
+  //   look.slow: [[x, y, w, h, fator], ...]   neve funda, areia fofa (fator < 1)
+  //   look.water: { speed, drift }            debaixo d'água: mais lenta, com uma leve deriva (px/s)
+  function terrain() {
+    const s = room.scenes[sceneAt(ellen.x)], look = s.data.look, x = ellen.x - s.ox;
+    let speed = 1, dx = 0, dy = 0;
+    (look.slow || []).forEach(([zx, zy, zw, zh, f]) => {
+      if (x >= zx && x < zx + zw && ellen.y >= zy && ellen.y < zy + zh) speed = Math.min(speed, f);
+    });
+    if (look.water) {
+      speed *= look.water.speed || 0.65;
+      const drift = look.water.drift || 0;
+      dx = drift * Math.sin(time * 0.8);
+      dy = drift * 0.6 * Math.sin(time * 0.53 + 1);
+    }
+    return { speed, dx, dy };
   }
 
   // ---------- o Fabio do presente segue o rastro da Ellen ----------
@@ -146,15 +165,26 @@ const StealthState = (() => {
   // ---------- vigias, cones e detecção ----------
   function castCones() {
     const rays = d().coneRays || 24;
-    // quem anda (garçom) também tapa a visão
-    sightNow = room.movers.length ? room.sight.concat(room.movers.map(m => m.rect())) : room.sight;
+    // quem anda (garçom, cardume) também tapa a visão, menos quem tem sight: false
+    const tapam = room.movers.filter(m => m.blocksSight);
+    sightNow = tapam.length ? room.sight.concat(tapam.map(m => m.rect())) : room.sight;
     room.guards.forEach(g => Vision.cast(g.cone(), sightNow, rays));
   }
 
+  // Zonas de luz (festival de Yanai, look.lightOnly): só dá para ver a Ellen dentro de um círculo
+  // de luz do cenário (look.tint.lights, a mesma conta do desenho da luz).
+  function lit() {
+    const s = room.scenes[sceneAt(ellen.x)], look = s.data.look;
+    if (!look.lightOnly) return true;
+    return ((look.tint && look.tint.lights) || []).some(([lx, ly, r]) =>
+      Math.hypot(ellen.x - (s.ox + lx), (ellen.y - 3 - ly) * 1.5) < r * 0.85);
+  }
+
   function detect(dt) {
+    const visible = lit();
     room.guards.forEach(g => {
       const cone = g._cone, before = g.stage();
-      g.seeing = g.coneActive() && !Debug.flags.invisible &&
+      g.seeing = visible && g.coneActive() && !Debug.flags.invisible &&
         SAMPLES.some(([ox, oy]) => Vision.inside(cone, ellen.x + ox, ellen.y + oy));
       g.sus = g.seeing
         ? Math.min(3, g.sus + d().suspicionUpPerSec * dt)
@@ -170,10 +200,20 @@ const StealthState = (() => {
     phase = 'caught';
     timer = 0;
     lineShown = false;
+    photobomb = inPhotoZone();
     Sound.sfx('caught');
   }
 
+  // F4 C2: pega dentro da zona da foto (photoZone: [x, y, w, h] do cenário) enquanto posam
+  function inPhotoZone() {
+    const s = room.scenes[sceneAt(ellen.x)], z = s.data.photoZone;
+    if (!z || !room.guards.some(g => g.photo && g.scene === s.i)) return false;
+    const x = ellen.x - s.ox;
+    return x >= z[0] && x <= z[0] + z[2] && ellen.y >= z[1] && ellen.y <= z[1] + z[3];
+  }
+
   function caughtLine() {
+    if (photobomb && GAME_CONFIG.texts.caughtPhoto) return { who: 'Fabio', text: GAME_CONFIG.texts.caughtPhoto };
     const lines = GAME_CONFIG.texts.caught;
     let i = Math.floor(Math.random() * lines.length);
     if (lines.length > 1 && i === lastLine) i = (i + 1) % lines.length;
@@ -250,6 +290,13 @@ const StealthState = (() => {
     });
   }
 
+  // F3 A1: o cenário tem duas datas (dates) e duas falas (lines); a segunda vale da metade em diante
+  // (look.split, padrão 192)
+  function secondHalf() {
+    const s = room.scenes[cur];
+    return !!(s.cfg.dates || s.cfg.lines) && ellen.x - s.ox >= (s.data.look.split || 192);
+  }
+
   function shadowAt(x) {
     return room.scenes[sceneAt(x)].data.look.shadow;
   }
@@ -257,7 +304,7 @@ const StealthState = (() => {
   function drawDebug(ctx) {
     room.sight.forEach(r => Gfx.box(r.x, r.y, r.w, r.h, 'rgba(80,220,255,0.8)'));
     room.solids.forEach(r => Gfx.box(r.x, r.y, r.w, r.h, 'rgba(242,193,78,0.8)'));
-    room.movers.forEach(m => { const r = m.rect(); Gfx.box(r.x, r.y, r.w, r.h, 'rgba(255,120,220,0.9)'); });
+    room.movers.forEach(m => { const r = m.rect(); Gfx.box(r.x, r.y, r.w, r.h, m.block ? 'rgba(255,120,220,0.9)' : 'rgba(120,255,220,0.9)'); });
     if (room.exit) Gfx.box(room.exit.x, room.exit.y, room.exit.w, room.exit.h, '#FF5CF0');
     const h = hitbox(ellen.x, ellen.y);
     Gfx.box(h.x, h.y, h.w, h.h, '#7CFC9A');
@@ -268,7 +315,7 @@ const StealthState = (() => {
     const st = GAME_CONFIG.stages[params.stage - 1] || {};
     if (params.kind !== 'room') return { date: '', title: st.title || '' };
     const s = room.scenes[cur].cfg;
-    return { date: s.date || (s.dates ? s.dates[0] : ''), title: s.title };
+    return { date: s.date || (s.dates ? s.dates[secondHalf() ? 1 : 0] : ''), title: s.title };
   }
 
   return {
@@ -299,14 +346,15 @@ const StealthState = (() => {
       if (phase === 'chest') { Chest.update(dt); return; }
       if (phase !== 'play') return;
 
-      room.guards.forEach(g => g.update(dt));
       room.movers.forEach(m => m.update(dt));
+      room.guards.forEach(g => g.update(dt));
 
-      // a Ellen: 8 direções, Shift corre
+      // a Ellen: 8 direções, Shift corre; terreno lento e água mudam a velocidade
       const a = Input.axis();
-      const speed = Input.down('run') ? d().runSpeed : d().walkSpeed;
+      const ground = terrain();
+      const speed = (Input.down('run') ? d().runSpeed : d().walkSpeed) * ground.speed;
       const bx = ellen.x, by = ellen.y;
-      move(ellen, a.x * speed * dt, a.y * speed * dt);
+      move(ellen, (a.x * speed + ground.dx) * dt, (a.y * speed + ground.dy) * dt);
       const moved = Math.hypot(ellen.x - bx, ellen.y - by);
       ellen.moving = moved > 0.01;
       ellen.dist += moved;
@@ -325,6 +373,11 @@ const StealthState = (() => {
 
       const i = sceneAt(ellen.x);
       if (i !== cur) enterScene(i);
+      const cfgNow = room.scenes[cur].cfg;
+      if (cfgNow.lines && cfgNow.lines[1] && !entered[cur + 'b'] && secondHalf()) {
+        entered[cur + 'b'] = true;
+        Dialog.toast(cfgNow.lines[1]);
+      }
       if (room.exit && overlap(hitbox(ellen.x, ellen.y), room.exit)) exitRoom();
     },
 
@@ -356,9 +409,9 @@ const StealthState = (() => {
         else list.push({ z: o.z, draw: () => ctx.drawImage(o.img, o.x, o.y) });
       });
       room.npcs.forEach(n => {
-        if (visible(n.x - 8, 16)) list.push({ z: n.y, draw: () => Chars.draw(ctx, Room.npcSprite(n, time), n.x, n.y, { chair: n.chair, dir: n.dir, pose: n.pose, shadow: shadowAt(n.x) }) });
+        if (visible(n.x - 16, 32)) list.push({ z: n.y, draw: () => Chars.draw(ctx, Room.npcSprite(n, time), n.x, n.y, { chair: n.chair, dir: n.dir, pose: n.pose, shadow: shadowAt(n.x), wade: n.wade, gear: n.gear, look: n.dir, t: time }) });
       });
-      room.guards.concat(room.movers).forEach(g => list.push({ z: g.y, draw: () => g.draw(ctx, shadowAt(g.x)) }));
+      room.guards.concat(room.movers).forEach(g => list.push({ z: g.z(), draw: () => g.draw(ctx, shadowAt(g.x), world) }));
       const fFrame = fabio.moving ? Math.floor(fabio.dist / STRIDE) % 4 : -1;
       const eFrame = ellen.moving ? Math.floor(ellen.dist / STRIDE) % 4 : -1;
       list.push({ z: fabio.y, draw: () => Chars.draw(ctx, Chars.sprite('FABIO_NOW', { dir: fabio.dir, frame: fFrame }), fabio.x, fabio.y, { shadow: shadowAt(fabio.x) }) });

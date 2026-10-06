@@ -94,30 +94,43 @@ const Room = (() => {
         room.npcs.push(npc);
       });
 
-      // NPCs que andam (garçom, pessoas passando): linha do tempo como a dos vigias, sem cone.
-      // Bloqueiam a passagem e a visão, mas não veem ninguém.
+      // NPCs que andam (garçom, pessoas, cervos, cardumes, o barco): linha do tempo como a dos
+      // vigias, sem cone. Não veem ninguém. block: false = não bloqueia a passagem; sight: false =
+      // não tapa a visão (os cardumes tapam a visão e não a passagem). prop: 'tipo' = desenhado
+      // pelo objeto do Scenery; size: [w, h] = tamanho no chão.
       (data.movers || []).forEach(md => {
-        const m = Guard.create(Object.assign({ cone: false }, md, { loop: (md.loop || []).map(st => Object.assign({ cone: false }, st)) }), ox);
+        const m = Guard.create(Object.assign({ cone: false }, md, { loop: (md.loop || []).map(st => Object.assign({ cone: false }, st)) }), ox, find);
         m.scene = idx;
         m.harmless = true;
+        m.block = md.block !== false;
+        m.blocksSight = md.sight !== false;
         room.movers.push(m);
       });
 
       // vigias: ocupam lugar, mas não bloqueiam a visão um do outro
       (data.guards || []).forEach(gd => {
-        const g = Guard.create(gd, ox);
+        const g = Guard.create(gd, ox, find);
         g.scene = idx;
         room.guards.push(g);
-        if (gd.pose === 'sit') solid(footprint(g.x, g.y, 'sit', gd.face), false);
+        if (gd.pose === 'sit' && !gd.ride) solid(footprint(g.x, g.y, 'sit', gd.face), false);
       });
     });
+    // quem vai junto com outro (ride) anda depois dele
+    room.movers.sort((a, b) => (a.def.ride ? 1 : 0) - (b.def.ride ? 1 : 0));
+    room.movers.concat(room.guards).forEach(g => g.reset());
     return room;
+
+    function find(id) {
+      return room.movers.find(m => m.id === id) || room.guards.find(g => g.id === id);
+    }
   }
 
   // sprite de um NPC parado (com a pequena animação de comer, se tiver)
   function npcSprite(n, t) {
-    if (n.pose === 'lie') return Chars.sprite(n.who, { pose: 'lie', dir: n.dir === 'right' ? 'right' : 'left', head: n.head, eyes: n.eyes });
-    if (n.pose === 'floor') return Chars.sprite(n.who, { pose: 'floor', dir: 'down', head: n.head, eyes: n.eyes });
+    if (n.pose === 'lie') return Chars.sprite(n.who, { pose: 'lie', dir: n.dir === 'right' ? 'right' : 'left', head: n.head, eyes: n.eyes, cover: n.cover });
+    if (n.pose === 'floor') return Chars.sprite(n.who, { pose: 'floor', dir: n.dir, head: n.head, eyes: n.eyes });
+    if (n.pose === 'swim') return Chars.sprite(n.who, { pose: 'swim', dir: n.dir, frame: Math.floor(t * 4 + n.x) % 4 });
+    if (n.pose === 'photo') return Chars.sprite(n.who, { pose: 'photo', eyes: n.eyes });
     if (n.pose !== 'sit') return Chars.sprite(n.who, { dir: n.dir, head: n.head });
     const frame = n.anim === 'eat' && Math.floor((t + (n.x % 7) * 0.31) / 0.6) % 3 === 0 ? 1 : 0;
     return Chars.sprite(n.who, { pose: n.pose, dir: n.dir, head: n.head, frame });

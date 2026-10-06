@@ -51,7 +51,7 @@ window.__open = (codes, at, room = 0, stage = 1) => {
   __run(0.2); Dialog.close(); __run(0.05);
 };
 window.__look = (x, y) => { const s = StealthState.inspect(); s.ellen.x = x; if (y !== undefined) s.ellen.y = y; Camera.follow(x, s.room.w); Game.__orig.render(Gfx.ctx); };
-window.__at = (t) => { const s = StealthState.inspect(); s.room.guards.concat(s.room.movers).forEach(g => { g.reset(); for (let k = 0; k < t; k += 0.25) g.update(Math.min(0.25, t - k)); }); s.room.guards.forEach(g => Vision.cast(g.cone(), s.room.sight, 24)); Game.__orig.render(Gfx.ctx); };
+window.__at = (t) => { const s = StealthState.inspect(); s.room.movers.concat(s.room.guards).forEach(g => { g.reset(); for (let k = 0; k < t; k += 0.25) g.update(Math.min(0.25, t - k)); }); s.room.guards.forEach(g => Vision.cast(g.cone(), s.room.sight, 24)); Game.__orig.render(Gfx.ctx); };
 window.__stats = (str) => { const v = str.split(' ').map(parseFloat); return { n: v.length, scare: Math.round(100 * v.filter(x => x >= 2).length / v.length), caught: Math.round(100 * v.filter(x => x >= 3).length / v.length) }; };
 
 // ---------- planejador: caminho mais rápido sem ser vista (busca no espaço × tempo) ----------
@@ -60,7 +60,10 @@ window.__stats = (str) => { const v = str.split(' ').map(parseFloat); return { n
 // "Vista" = algum ponto dos pés (os mesmos SAMPLES do stealth) dentro de um cone ativo.
 window.__plan = (codes, si, o = {}) => {
   const room = Room.build(codes), ox = si * 384, C = 4, W = 96, H = 48;
-  const speed = o.run ? 110 : 60, R = 2, dt = R * C / speed, T = o.T || 60;
+  const look = room.scenes[si].data.look;
+  const speed = (o.run ? 110 : 60) * (look.water ? (look.water.speed || 0.65) : 1), R = 2, dt = R * C / speed, T = o.T || 60;
+  const lights = look.lightOnly ? ((look.tint && look.tint.lights) || []) : null;
+  const lit = (x, y) => !lights || lights.some(([lx, ly, r]) => Math.hypot(x - (ox + lx), (y - 3 - ly) * 1.5) < r * 0.85);
   const SAMPLES = [[0, -2], [-4, -2], [4, -2]];
   const overlap = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
   const box = (x, y) => ({ x: x - 5, y: y - 6, w: 10, h: 6 });
@@ -75,18 +78,18 @@ window.__plan = (codes, si, o = {}) => {
   if (o.from) s0 = Math.round((o.from[0] - 2) / C) + Math.round((o.from[1] - 2) / C) * W;
   const isTarget = i => px(i % W) >= ox + 378 && walk[i];
   // avança o mundo até t0
-  const all = room.guards.concat(room.movers);
+  const all = room.movers.concat(room.guards);
   all.forEach(g => g.reset());
   for (let t = 0; t < (o.t0 || 0); t += 0.25) all.forEach(g => g.update(Math.min(0.25, (o.t0 || 0) - t)));
   const seenAt = () => {
-    const sight = room.sight.concat(room.movers.map(m => m.rect()));
+    const sight = room.sight.concat(room.movers.filter(m => m.blocksSight).map(m => m.rect()));
     const cones = room.guards.map(g => { Vision.cast(g.cone(), sight, 24); return g; }).filter(g => g.coneActive()).map(g => g._cone);
     const seen = new Uint8Array(W * H), block = new Uint8Array(W * H);
-    const mrect = room.movers.map(m => m.rect());
+    const mrect = room.movers.filter(m => m.block).map(m => m.rect());
     for (let k = 0; k < W * H; k++) {
       if (!walk[k]) continue;
       const x = px(k % W), y = py((k / W) | 0);
-      if (cones.some(c => SAMPLES.some(([a, b]) => Vision.inside(c, x + a, y + b)))) seen[k] = 1;
+      if (lit(x, y) && cones.some(c => SAMPLES.some(([a, b]) => Vision.inside(c, x + a, y + b)))) seen[k] = 1;
       if (mrect.length) { const b = box(x, y); if (mrect.some(r => overlap(b, r))) block[k] = 1; }
     }
     return { seen, block };
@@ -137,13 +140,13 @@ window.__drawPath = (path, color = '#00FF88') => { const c = Gfx.ctx; c.fillStyl
 window.__heat = (codes, si, period, o = {}) => {
   const room = Room.build(codes), ox = si * 384, C = 4, W = 96, H = 48, dt = 0.1;
   const SAMPLES = [[0, -2], [-4, -2], [4, -2]];
-  const all = room.guards.concat(room.movers);
+  const all = room.movers.concat(room.guards);
   all.forEach(g => g.reset());
   const heat = new Float32Array(W * H);
   const n = Math.round(period / dt);
   for (let k = 0; k < n; k++) {
     all.forEach(g => g.update(dt));
-    const sight = room.sight.concat(room.movers.map(m => m.rect()));
+    const sight = room.sight.concat(room.movers.filter(m => m.blocksSight).map(m => m.rect()));
     const cones = room.guards.map(g => { Vision.cast(g.cone(), sight, 24); return g; }).filter(g => g.coneActive()).map(g => g._cone);
     for (let c = 0; c < W * H; c++) {
       const x = ox + (c % W) * C + 2, y = ((c / W) | 0) * C + 2;
@@ -169,13 +172,15 @@ window.__naive = (codes, si, period, o = {}) => {
   const res = [];
   for (let t0 = 0; t0 < period; t0 += (o.step || 0.5)) {
     const room = Room.build(codes), ox = si * 384;
-    const all = room.guards.concat(room.movers);
+    const all = room.movers.concat(room.guards);
     all.forEach(g => { g.reset(); g.sus = 0; });
+    const look = room.scenes[si].data.look;
+    const lights = look.lightOnly ? ((look.tint && look.tint.lights) || []) : null;
     for (let t = 0; t < t0; t += 0.25) all.forEach(g => g.update(Math.min(0.25, t0 - t)));
-    const y0 = o.y || 112, speed = o.run ? 110 : 60, dt = 1 / 30;
+    const y0 = o.y || 112, speed = (o.run ? 110 : 60) * (look.water ? (look.water.speed || 0.65) : 1), dt = 1 / 30;
     let x = ox + room.scenes[si].data.start.x, y = y0, maxSus = 0, blocked = false;
     const overlap = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
-    const free = (xx, yy) => { const b = { x: xx - 5, y: yy - 6, w: 10, h: 6 }; return !room.solids.some(r => overlap(b, r)) && !room.movers.some(m => overlap(b, m.rect())); };
+    const free = (xx, yy) => { const b = { x: xx - 5, y: yy - 6, w: 10, h: 6 }; return !room.solids.some(r => overlap(b, r)) && !room.movers.some(m => m.block && overlap(b, m.rect())); };
     for (let steps = 0; x < ox + 380 && steps < 1800; steps++) {
       all.forEach(g => g.update(dt));
       const v = speed * dt;
@@ -184,10 +189,11 @@ window.__naive = (codes, si, period, o = {}) => {
       else if (free(x, y + v)) { y += v; blocked = true; }
       else if (free(x, y - v)) { y -= v; blocked = true; }
       else blocked = true;
-      const sight = room.sight.concat(room.movers.map(m => m.rect()));
+      const sight = room.sight.concat(room.movers.filter(m => m.blocksSight).map(m => m.rect()));
+      const isLit = !lights || lights.some(([lx, ly, r]) => Math.hypot(x - (ox + lx), (y - 3 - ly) * 1.5) < r * 0.85);
       room.guards.forEach(g => {
         Vision.cast(g.cone(), sight, 24);
-        const seen = g.coneActive() && [[0, -2], [-4, -2], [4, -2]].some(([a, c]) => Vision.inside(g._cone, x + a, y + c));
+        const seen = isLit && g.coneActive() && [[0, -2], [-4, -2], [4, -2]].some(([a, c]) => Vision.inside(g._cone, x + a, y + c));
         g.sus = seen ? Math.min(3, g.sus + 2 * dt) : Math.max(0, g.sus - 0.5 * dt);
         maxSus = Math.max(maxSus, g.sus);
       });
