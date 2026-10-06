@@ -17,7 +17,9 @@
 //   jump: [x, y]    no começo do passo, aparece direto ali (o esquiador some embaixo e volta no topo)
 //   track: 'id'     o olhar segue quem tem esse id (vigia ou quem anda), em vez do `look` do loop;
 //                   trackOffset: graus somados. track: null para de seguir. (a Ellen filmando o
-//                   esqui; os dois virando a cabeça para o tubarão-baleia)
+//                   esqui; os dois virando a cabeça para o tubarão-baleia). Na definição,
+//                   trackMirror: true espelha o ângulo para baixo (o alvo passa no tanque, em cima,
+//                   e o cone varre a sala no mesmo sentido dele)
 //   photo: true     enquanto valer, o vigia está posando para a foto: se a Ellen for pega dentro
 //                   da `photoZone` do cenário, a fala é a do photobomb (F4 C2)
 // Na definição (não no loop):
@@ -140,7 +142,10 @@ const Guard = (() => {
       const target = g.track && find && find(g.track);
       if (target) {
         const c = g.cone();
-        const want = Math.atan2(target.y - 8 - c.y, target.x - c.x) / RAD + g.trackOffset;
+        let want = Math.atan2(target.y - 8 - c.y, target.x - c.x) / RAD;
+        // trackMirror: o alvo está acima (no tanque), e o cone varre a sala no mesmo sentido dele
+        if (def.trackMirror) want = -want;
+        want += g.trackOffset;
         const diff = turn(g.look, want) - g.look, maxStep = 300 * dt;
         g.look = norm(g.look + Math.max(-maxStep, Math.min(maxStep, diff)));
       } else {

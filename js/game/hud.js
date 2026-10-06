@@ -14,13 +14,20 @@ const Hud = {
       x = Gfx.text('·', x, y, '#CFC8E8', sh) + 5;
       x = Gfx.text(date, x, y, '#CFC8E8', sh) + 5;
     }
+    const segX = Display.W - 8 - 5 * 10 - 4 * 4;
+    let label = true;
     if (title) {
       x = Gfx.text('·', x, y, '#CFC8E8', sh) + 5;
-      Gfx.text(title, x, y, '#FFF4DA', sh);
+      // título comprido (ex.: o festival de Yanai): esconde a palavra MEMORY e, se ainda não
+      // couber, corta o título com reticências
+      let t = title;
+      const room = segX - 8 - x;
+      if (Gfx.textWidth(t) > room - Gfx.textWidth('MEMORY') - 8) label = false;
+      while (t.length > 3 && Gfx.textWidth(t) > room) t = t.slice(0, -4) + '...';
+      Gfx.text(t, x, y, '#FFF4DA', sh);
     }
 
-    const segX = Display.W - 8 - 5 * 10 - 4 * 4;
-    Gfx.text('MEMORY', segX - 6, y, '#CFC8E8', { shadow: '#07060E', align: 'right' });
+    if (label) Gfx.text('MEMORY', segX - 6, y, '#CFC8E8', { shadow: '#07060E', align: 'right' });
     for (let i = 0; i < 5; i++) {
       const sx = segX + i * 14, fill = Math.max(0, Math.min(1, memory - i));
       Gfx.rect(sx, 7, 10, 9, '#5B4F92');

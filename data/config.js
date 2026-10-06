@@ -117,7 +117,9 @@ window.GAME_CONFIG = {
     {
       id: 4, title: "Islands, Rings & Lanterns",
       scenes: [
-        { code: "F4A1", date: "26/04/2026", title: "Zoo", line: { who: "Fabio", text: "Lions, elephants... and us." } },
+        { code: "F4A1", date: "26/04/2026", title: "Zoo", line: { who: "Fabio", text: "Lions, elephants... and us." },
+          signs: "Pandas →|Penguins ←|Zebras →",               // placa com setas (uma linha por "|")
+          stand1: "Ice cream", stand2: "Crêpes", stand3: "Takoyaki" },   // barraquinhas
         { code: "F4A2", date: "03/05/2026", title: "Okinawa aquarium", line: { who: "Ellen", text: "You made one of my dreams come true." } },
         { code: "F4B1", date: "04/05/2026", title: "Diving in Okinawa", line: { who: "Fabio", text: "Diving! Looks so fun... So many fish!" } },
         { code: "F4B2", date: "13/06/2026", title: "Making our rings", line: { who: "Fabio", text: "Rings? Why does this feel important?" } },
