@@ -60,6 +60,7 @@ const Story = (() => {
         return wait(1.9);
       case 'villainArrives':
         flicker = 1.8;
+        Sound.music('tense');
         smell = 3.2;
         Sound.sfx('flicker');
         later(0.9, () => { const j = find('jimmy'); if (j) j.hidden = false; flash = 0.8; shakeT = 0.5; Sound.sfx('smell'); Sound.sfx('rumble'); });

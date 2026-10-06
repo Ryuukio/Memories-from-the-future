@@ -69,6 +69,7 @@ const AnomalyState = (() => {
       msg = null;
       Input.setTextMode(false);
       Save.write({ stage, scene: 'MACHINE', memory: Flow.memory });
+      Sound.music('lab');
     },
 
     exit() { Input.setTextMode(false); },

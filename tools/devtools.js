@@ -20,6 +20,9 @@
 //   __naive(códigos, i, período)         jogadora que anda reto sem olhar: suspeita máxima por fase (3 = pega)
 //   __stats(texto do __naive)            % das fases com susto (≥ 2) e com a Ellen pega (3)
 //   __heat / __drawHeat / __drawPath     mapa de calor dos cones e o caminho, por cima do print
+// Som (não precisa ouvir): await Sound.render('battle', 10) ou Sound.render('alert1', 2) toca offline
+// e devolve o pico e o RMS da saída. Hoje: músicas com pico ~0,35 e RMS ~0,085 (a valsa da fase 3,
+// 0,057); alertas com pico ~0,2 a 0,25, o tiro final ~0,9 (sozinho, no silêncio).
 // Fase 1, depois do balanceamento: andando reto sem olhar, ela é pega em 11% a 21% das fases do
 // loop de cada cenário; esperando a janela, passa sempre (6 a 9,5 s jogando perfeito).
 

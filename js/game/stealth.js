@@ -17,6 +17,8 @@
 //   onInteract(kind)  ao apertar Espaço perto de um objeto com `interact` (a máquina do tempo)
 //   onExit()          ao chegar na saída (look.exitZone ou a passagem da direita: a escada)
 //   marker: [x, y]    seta piscando em cima de um ponto (a escada, depois da batalha)
+//   music             música da cena (null = silêncio; sem a chave, continua a que está tocando).
+//                     Nas salas, no corredor e no baú, toca a música da fase.
 const StealthState = (() => {
   const TOP = Hud.H, VIEW_W = Display.W, VIEW_H = Display.H - Hud.H;
   const FOLLOW = 18;   // distância do Fabio atrás da Ellen, medida pelo caminho que ela fez
@@ -355,6 +357,8 @@ const StealthState = (() => {
       flash = 0;
       phase = 'play';
       Story.reset(room, params);
+      if (params.kind !== 'story') Sound.music('f' + params.stage);
+      else if ('music' in params) Sound.music(params.music);
       placeAt(params.at || 0);
       if (params.script) {
         cur = params.at || 0;
@@ -392,7 +396,9 @@ const StealthState = (() => {
       move(ellen, (a.x * speed + ground.dx) * dt, (a.y * speed + ground.dy) * dt);
       const moved = Math.hypot(ellen.x - bx, ellen.y - by);
       ellen.moving = moved > 0.01;
+      const foot = Math.floor(ellen.dist / (STRIDE * 2));
       ellen.dist += moved;
+      if (Math.floor(ellen.dist / (STRIDE * 2)) !== foot && !room.scenes[cur].data.look.water) Sound.sfx('step');
       if (a.x || a.y) ellen.dir = faceFrom(ellen.dir, a.x, a.y);
       follow();
       Camera.follow(ellen.x, room.w);

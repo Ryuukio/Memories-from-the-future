@@ -32,6 +32,7 @@ const Flow = {
     const rooms = this.rooms(n);
     if (rooms.length) Save.write({ stage: n, scene: rooms[0][0], memory: this.memory });
     const text = GAME_CONFIG.texts.stageCard.replace('{n}', n).replace('{title}', st.title);
+    Sound.music('f' + n);
     Game.go('card', {
       text,
       then: () => {
@@ -57,8 +58,10 @@ const Flow = {
     const P = GAME_CONFIG.texts.prologue;
     const card = (text, then) => Game.go('card', { text, italic: true, seconds: 2.6, then });
     this.story(['PRO1'], {
+      music: null,
       script: P.fastfood,
       then: () => this.story(['PRO2'], {
+        music: 'sad',
         script: P.apartment,
         then: () => this.lab(1, () => card(P.card1, () => this.lab(2, () => card(P.card2, () => this.labWalk()))))
       })
@@ -69,6 +72,7 @@ const Flow = {
   lab(part, then) {
     const P = GAME_CONFIG.texts.prologue;
     this.story(['LAB'], {
+      music: 'lab',
       cast: { ellen1: part === 1, ellen2: part === 2, tony: true, heymans: false },
       setup: find => { find('machine').on = part - 1; },
       script: part === 1 ? P.lab1 : P.lab2,
@@ -80,6 +84,7 @@ const Flow = {
   labWalk() {
     const P = GAME_CONFIG.texts.prologue;
     this.story(['LAB'], {
+      music: 'lab',
       player: true,
       cast: { ellen1: false, ellen2: false, tony: true, heymans: true },
       setup: find => { find('machine').on = 2; },
@@ -99,12 +104,13 @@ const Flow = {
   // ---------- fase 5: a livraria-café, a batalha e o final (seções 6, 8, 11.8–11.10) ----------
   shopParams(o) {
     const sh = GAME_CONFIG.shop;
-    return Object.assign({ kind: 'story', stage: 5, codes: ['SHOP'], player: true, hud: true, title: sh.hudTitle, date: Hud.today() }, o);
+    return Object.assign({ kind: 'story', stage: 5, codes: ['SHOP'], player: true, hud: true, title: sh.hudTitle, date: Hud.today(), music: 'shop' }, o);
   },
 
   shop() {
     Save.write({ stage: 5, scene: 'SHOP', memory: this.memory });
     const sh = GAME_CONFIG.shop;
+    Sound.music('shop');
     Game.go('card', {
       text: GAME_CONFIG.texts.stageCard.replace('{n}', 5).replace('{title}', sh.title),
       then: () => Game.go('stealth', this.shopParams({ script: GAME_CONFIG.texts.shop, then: () => this.battle() }))
@@ -123,6 +129,7 @@ const Flow = {
     Save.write({ stage: 5, scene: 'ENDING', memory: 5 });
     const st = SCENES.SHOP.stairs;
     Game.go('stealth', this.shopParams({
+      music: 'ending',
       script: GAME_CONFIG.texts.ending.lines,
       then: () => {},
       marker: st.marker,

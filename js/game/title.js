@@ -39,6 +39,7 @@ const TitleState = (() => {
       save = Save.load();
       menu = save ? [GAME_CONFIG.title.continue, GAME_CONFIG.title.newGame] : null;
       sel = 0;
+      Sound.music('title');
     },
 
     update(dt) {
