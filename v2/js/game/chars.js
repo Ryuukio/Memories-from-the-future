@@ -331,9 +331,16 @@ const Chars = (() => {
     return rows;
   }
 
-  // curativo do Fabio do presente: uma faixa branca na testa (linhas 5 a 7 da cabeça)
+  // curativo do Fabio do presente: uma faixa branca de 2 px em volta da cabeça (linhas 6 e 7, logo
+  // acima da franja), mais escura nas pontas (dá a volta) e sem chegar à borda de cada linha: o
+  // contorno continua o do cabelo, e a faixa não muda a forma da cabeça
   function bandage(rows) {
-    return rows.map((r, y) => (y >= 5 && y <= 7 ? r.replace(/[^.o]/g, y === 7 ? 'W' : 'w') : r));
+    return rows.map((r, y) => {
+      if (y !== 6 && y !== 7) return r;
+      const xs = [...r].map((c, x) => (c !== '.' && c !== 'o' ? x : -1)).filter(x => x >= 0);
+      const l = xs[0], rr = xs[xs.length - 1];
+      return r.replace(/[^.o]/g, (c, x) => (x <= l || x >= rr ? c : y === 7 || x === l + 1 || x === rr - 1 ? 'W' : 'w'));
+    });
   }
 
   // acessórios e penteados da roupa (extras), na direção da cabeça; cada um é uma parte
