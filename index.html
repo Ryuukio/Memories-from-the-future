@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Memories from the Future</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="home/home.css">
+</head>
+<body>
+  <!-- Página inicial: escolhe a versão. À esquerda a V1 (8-bit, v1.html), à direita a V2 (32-bit,
+       v2/index.html). Textos, destinos e imagens no HOME_CONFIG (topo de home/home.js). -->
+  <main class="split" id="split">
+    <section class="half" data-i="0">
+      <div class="center">
+        <a class="play" href="v1.html"><span class="sr">Play 8-bit</span><canvas></canvas></a>
+        <canvas class="name"></canvas>
+        <canvas class="line"></canvas>
+      </div>
+    </section>
+    <section class="half" data-i="1">
+      <div class="center">
+        <a class="play" href="v2/index.html"><span class="sr">Play 32-bit</span><canvas></canvas></a>
+        <canvas class="name"></canvas>
+        <canvas class="line"></canvas>
+      </div>
+    </section>
+    <div class="divider"><canvas class="diamond"></canvas></div>
+    <header class="band top"><h1 class="sr">Memories from the Future</h1><canvas class="title"></canvas></header>
+    <footer class="band bottom"><canvas class="hint"></canvas></footer>
+  </main>
+
+  <!-- Só a fonte de pixel da V2 (o arquivo só define dados: SPRITES, PALETTES, FONT) -->
+  <script src="v2/data/sprites.js"></script>
+  <script src="home/home.js"></script>
+</body>
+</html>

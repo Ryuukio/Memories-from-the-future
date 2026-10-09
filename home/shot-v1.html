@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Home image (8-bit)</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <!-- Só para refazer a imagem da página inicial (home/8bit.png): carrega a V1 como o v1.html, as
+       ferramentas de teste dela e monta o F1 A2 (ver o topo de home/home.js). O jogo da V1 não muda. -->
+  <canvas id="game" width="384" height="216"></canvas>
+  <script src="../data/config.js"></script>
+  <script src="../data/music.js"></script>
+  <script src="../data/sprites.js"></script>
+  <script src="../data/sprites-f2.js"></script>
+  <script src="../data/sprites-f3.js"></script>
+  <script src="../data/sprites-f4.js"></script>
+  <script src="../data/characters.js"></script>
+  <script src="../data/characters-f2.js"></script>
+  <script src="../data/characters-f3.js"></script>
+  <script src="../data/characters-f4.js"></script>
+  <script src="../data/scenes/F1A1.js"></script>
+  <script src="../data/scenes/F1A2.js"></script>
+  <script src="../data/scenes/F1B1.js"></script>
+  <script src="../data/scenes/F1B2.js"></script>
+  <script src="../data/scenes/F1C1.js"></script>
+  <script src="../data/scenes/F1C2.js"></script>
+  <script src="../data/scenes/F2A1.js"></script>
+  <script src="../data/scenes/F2A2.js"></script>
+  <script src="../data/scenes/F2B1.js"></script>
+  <script src="../data/scenes/F2B2.js"></script>
+  <script src="../data/scenes/F2C1.js"></script>
+  <script src="../data/scenes/F2C2.js"></script>
+  <script src="../data/scenes/F3A1.js"></script>
+  <script src="../data/scenes/F3A2.js"></script>
+  <script src="../data/scenes/F3B1.js"></script>
+  <script src="../data/scenes/F3B2.js"></script>
+  <script src="../data/scenes/F3C1.js"></script>
+  <script src="../data/scenes/F3C2.js"></script>
+  <script src="../data/scenes/F4A1.js"></script>
+  <script src="../data/scenes/F4A2.js"></script>
+  <script src="../data/scenes/F4B1.js"></script>
+  <script src="../data/scenes/F4B2.js"></script>
+  <script src="../data/scenes/F4C1.js"></script>
+  <script src="../data/scenes/F4C2.js"></script>
+  <script src="../data/scenes/HALL.js"></script>
+  <script src="../data/scenes/PRO1.js"></script>
+  <script src="../data/scenes/PRO2.js"></script>
+  <script src="../data/scenes/LAB.js"></script>
+  <script src="../data/scenes/SHOP.js"></script>
+  <script src="../data/scenes/CHEST.js"></script>
+  <script src="../js/engine/display.js"></script>
+  <script src="../js/engine/gfx.js"></script>
+  <script src="../js/engine/text.js"></script>
+  <script src="../js/engine/input.js"></script>
+  <script src="../js/engine/loop.js"></script>
+  <script src="../js/engine/sound.js"></script>
+  <script src="../js/engine/save.js"></script>
+  <script src="../js/engine/camera.js"></script>
+  <script src="../js/engine/dialog.js"></script>
+  <script src="../js/engine/game.js"></script>
+  <script src="../js/engine/debug.js"></script>
+  <script src="../js/game/hud.js"></script>
+  <script src="../js/game/scenery.js"></script>
+  <script src="../js/game/scenery-hall.js"></script>
+  <script src="../js/game/scenery-f1.js"></script>
+  <script src="../js/game/scenery-f2.js"></script>
+  <script src="../js/game/scenery-f3.js"></script>
+  <script src="../js/game/scenery-f4.js"></script>
+  <script src="../js/game/scenery-story.js"></script>
+  <script src="../js/game/chars.js"></script>
+  <script src="../js/game/vision.js"></script>
+  <script src="../js/game/guards.js"></script>
+  <script src="../js/game/room.js"></script>
+  <script src="../js/game/flow.js"></script>
+  <script src="../js/game/items.js"></script>
+  <script src="../js/game/chest.js"></script>
+  <script src="../js/game/title.js"></script>
+  <script src="../js/game/card.js"></script>
+  <script src="../js/game/story.js"></script>
+  <script src="../js/game/jimmy.js"></script>
+  <script src="../js/game/stealth.js"></script>
+  <script src="../js/game/anomaly.js"></script>
+  <script src="../js/game/battle.js"></script>
+  <script src="../js/game/ending.js"></script>
+  <script src="../js/game/testroom.js"></script>
+  <script src="../js/main.js"></script>
+  <script src="../tools/devtools.js"></script>
+  <script>
+    // o F1 A2 inteiro, a Ellen e o Fabio escondidos atrás do carrinho de sorvete e os dois do passado
+    // no banco (o mesmo enquadramento do HOME do v2/tools/headless.js)
+    window.addEventListener('load', () => {
+      __open(['F1A1', 'F1A2'], 1);
+      Debug.flags.invisible = true;
+      const st = StealthState.inspect(), ox = 384;
+      __tp(ox + 112, 158); st.ellen.dir = 'right'; st.fabio.dir = 'right';
+      __at(3.5); __run(0.6);
+      st.fabio.dir = 'right';
+      Camera.follow(ox + 192, st.room.w); Dialog.close(); Game.__orig.render(Gfx.ctx);
+    });
+  </script>
+</body>
+</html>

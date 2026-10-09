@@ -22,7 +22,8 @@
 //                      Sprites: HEADS (roupas inteiras em 2×), HEADZ:ROUPA/direção:... (só as
 //                      cabeças em 4×), HEADSET:página (as cabeças com acessório, 15 por página)
 //                      e POSES:ROUPA (o __poses). LABTALK:quem:vezes = a conversa do laboratório
-//                      (notes, tony ou heymans) aberta na vez `vezes`
+//                      (notes, tony ou heymans) aberta na vez `vezes`. HOME = a imagem da página
+//                      inicial (ver o topo de home/home.js)
 (() => {
   const errs = [];
   window.addEventListener('error', e => errs.push('ERR ' + e.message + ' @' + (e.filename || '').split('/').pop() + ':' + e.lineno));
@@ -86,6 +87,17 @@
       if (code === 'FALL') { choose('shoot'); for (let i = 0; i < 40 && B().hp !== 0; i++) { __tap('Space'); __run(0.25); } __run(0.5); }
     }
     else if (code === 'PAUSE') { open('F1A1'); __run(0.5); __tap('Escape'); }
+    else if (code === 'HOME') {
+      // a imagem da página inicial (home/32bit.png): o F1 A2 inteiro, a Ellen e o Fabio escondidos
+      // atrás do carrinho de sorvete e os dois do passado no banco (o mesmo enquadramento do
+      // home/shot-v1.html, nas coordenadas da V1 × 1,25)
+      open('F1A2');
+      Debug.flags.invisible = true;
+      const K = Room.K, ox = Room.SW, st = StealthState.inspect();
+      __tp(ox + 112 * K, 158 * K); st.ellen.dir = 'right'; st.fabio.dir = 'right';
+      __at(3.5); __run(0.6);
+      window.__after = () => { st.fabio.dir = 'right'; Camera.follow(ox + Room.SW / 2, st.room.w); Dialog.close(); Game.__orig.render(Gfx.ctx); };
+    }
     else if (code.startsWith('LABTALK')) {
       // o laboratório depois das falas, a Ellen perto de quem (notes, tony ou heymans) e Espaço
       // `vezes` vezes (as conversas anteriores passam inteiras; a última fica aberta para o print)

@@ -1,0 +1,138 @@
+/* Página inicial: a tela dividida ao meio (8-bit | 32-bit). --u = 1 pixel do jogo em px de CSS
+   (o home.js calcula para os pixels da tela ficarem inteiros, também com o zoom do Windows). */
+:root {
+  --u: 4px;
+  --ink: #07060E;
+  --gold: #E2C068;
+  --gold-dark: #6A4A1A;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--ink);
+  overflow: hidden;
+}
+
+canvas {
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.split {
+  position: relative;
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+}
+
+/* cada metade: a imagem do jogo cobrindo tudo, nítida, com um véu escuro por cima */
+.half {
+  position: relative;
+  flex: 1 1 50%;
+  background-color: var(--ink);
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: 40% 50%;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  cursor: pointer;
+}
+.half::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--ink);
+  opacity: 0.5;
+  transition: opacity 0.25s;
+  pointer-events: none;
+}
+.half.active::after { opacity: 0.12; }
+.split.chosen .half:not(.active)::after { opacity: 0.72; }
+
+.center {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--u) * 5);
+  pointer-events: none;
+}
+.center > * { pointer-events: auto; }
+.center .line { margin-top: calc(var(--u) * -3); }
+
+.play {
+  display: block;
+  outline: none;
+  transition: transform 0.15s;
+}
+.half.active .play { transform: translateY(calc(var(--u) * -1)); }
+
+/* a divisória dourada no meio, com o losango */
+.divider {
+  position: absolute;
+  z-index: 2;
+  left: calc(50% - var(--u) / 2);
+  top: 0;
+  bottom: 0;
+  width: var(--u);
+  background: var(--gold);
+  box-shadow: 0 0 0 var(--u) rgba(7, 6, 14, 0.55);
+  pointer-events: none;
+}
+.diamond {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* faixas de cima (título) e de baixo (dicas) atravessando as duas metades */
+.band {
+  position: absolute;
+  z-index: 3;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+/* a faixa de cima cobre o HUD das imagens (30 de 270 linhas na V2, 24 de 216 na V1: a mesma altura)
+   e o título fica no lugar dele */
+.band.top {
+  top: 0;
+  height: calc(100vh * 30 / 270);
+  align-items: center;
+  background: var(--ink);
+  border-bottom: var(--u) solid #2A2550;
+}
+.band.top::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: calc(var(--u) * 10);
+  background: linear-gradient(rgba(7, 6, 14, 0.6), rgba(7, 6, 14, 0));
+}
+.band.bottom {
+  bottom: 0;
+  padding: calc(var(--u) * 10) 0 calc(var(--u) * 4);
+  background: linear-gradient(rgba(7, 6, 14, 0), rgba(7, 6, 14, 0.9));
+}
+.band h1 { margin: 0; }
