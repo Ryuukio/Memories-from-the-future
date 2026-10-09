@@ -11,6 +11,8 @@ SCENES.F2A1 = {
     sea: [40, 92],                          // o mar (não dá para entrar)
     wall: { style: 'beachSky', height: 40, shadow: false },
     edge: 'beachRocks',
+    // V2: sol do meio-dia, alto e um pouco à esquerda: sombras curtas para a direita, azuladas
+    light: { k: [0.32, 0.24], color: '#B4BCD8', contact: '#7E86A6' },
     doors: { left: [100, 188], right: [100, 188] }
   },
 

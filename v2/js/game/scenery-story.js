@@ -291,6 +291,31 @@
     }
   };
 
+  // V2 (F2 C1; o quarto do prólogo ainda é da V1): o tapete felpudo e a mesinha no tamanho novo
+  props.fluffyRug.art = () => {
+    const s = Art.surface(100, 50), FUR = Art.tones(['#6E6E74', '#828288', '#96969C', '#AAAAB0', '#BEBEC4', '#D2D2D6']);
+    s.ellipse(50, 25, 49.5, 24.5, (x, y, nx, ny) => {
+      const edge = nx * nx + ny * ny > 0.86 && Art.hash(x, y, 520) < 0.5;
+      if (edge) return null;
+      let t = Art.sphere(nx * 0.5, ny * 0.5) * 0.4 + 0.3 + (Art.vnoise(x, y, 2, 521) - 0.5) * 0.5;
+      // pelos: tracinhos curtos mais claros e mais escuros
+      if (Art.hash(x, y, 522) < 0.12) t += 0.25; else if (Art.hash(x, y, 523) < 0.1) t -= 0.25;
+      return Art.pick(FUR, t, x, y);
+    });
+    return { spr: s, shadow: false };
+  };
+  props.lowTable.art = () => {
+    const s = Art.surface(45, 28), W = Art.tones(['#B8B0A0', '#CEC8BA', '#E2DED4', '#F0EEE8', '#FAF9F6', '#FFFFFF']);
+    for (let y = 2; y < 21; y++) for (let x = 0; x < 45; x++) s.put(x, y, Art.pick(W, (y < 18 ? 0.85 - x / 45 * 0.2 + (y === 2 ? 0.15 : 0) : 0.35) - (y === 17 ? 0.15 : 0), x, y));
+    for (const lx of [2, 40]) for (let y = 21; y < 26; y++) { s.put(lx, y, W[2]); s.put(lx + 1, y, W[1]); s.put(lx + 2, y, W[0]); }
+    // uma caneca e uma caixa de lenço
+    s.ellipse(12, 9, 3.5, 3, (x, y, nx, ny) => (nx * nx + ny * ny < 0.35 ? '#7A4A2A' : Art.pick(Art.ramp('#E8A07A'), Art.sphere(nx, ny) + 0.1, x, y)));
+    for (let y = 5; y < 12; y++) for (let x = 26; x < 37; x++) s.put(x, y, Art.pick(Art.ramp('#8AB8D8'), 0.75 - (x - 26) * 0.04 - (y === 11 ? 0.3 : 0), x, y));
+    s.rect(29, 6, 5, 1, '#FFFFFF'); s.put(31, 5, '#FFFFFF');
+    s.outline(0.5);
+    return { spr: s, dx: 0, dy: 0, base: 25, contact: [22.5, 25, 21, 1.5] };
+  };
+
   // ======================================================================
   //  Prólogo, cena 3 · o laboratório: o quadro do Tony, as plantas e amostras da Heymans,
   //  o caderno do Dr King na mesa e a máquina do tempo no centro

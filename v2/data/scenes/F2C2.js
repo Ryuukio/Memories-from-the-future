@@ -9,9 +9,11 @@ window.SCENES = window.SCENES || {};
 
 SCENES.F2C2 = {
   look: {
-    floor: 'festival',
-    wall: { style: 'festivalSky', height: 28, shadow: false },
+    floor: 'brazilPark',                     // V2: piso e céu próprios (os da V1 eram 'festival' e
+    wall: { style: 'brazilSky', height: 28, shadow: false },   // 'festivalSky', que outras fases usam)
     edge: 'hedge',
+    // V2: tarde de sol: sombras compridas para a direita (a da árvore cai na roda dos amigos)
+    light: { k: [1.0, 0.32], color: '#AEB4CC', contact: '#787E9A' },
     doors: { left: [34, 70], right: [96, 128] }
   },
 

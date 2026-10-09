@@ -1374,4 +1374,7 @@
     return { spr: s, dx: -2, dy: 0, base: 31, contact: [11, 31, 8, 1.5] };
   };
 
+  // as ferramentas daqui que as outras fases reaproveitam (grama, nuvem, prédios ao longe, moita de
+  // copa, as folhas de dia e à noite)
+  Art.kit = Object.assign(Art.kit || {}, { grass, cloud, skyline, lump, stonePath, LEAF, LEAF_N, GRASS, GRASS_N });
 })();

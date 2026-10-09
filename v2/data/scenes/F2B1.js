@@ -17,6 +17,8 @@ SCENES.F2B1 = {
     floor: 'cinema',
     wall: { style: 'cinema', height: 54 },
     edge: 'cinema',
+    // V2: as lâmpadas do teto, quentes: sombras curtas, puxando para o roxo do carpete
+    light: { k: [0.08, 0.16], color: '#A496B4', contact: '#5E4E72' },
     doors: { left: [96, 128], right: [96, 128] }
   },
 

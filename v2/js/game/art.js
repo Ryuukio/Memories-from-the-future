@@ -358,8 +358,8 @@ const Art = (() => {
     rgb, mix, mul, lum, hex, c01, ramp, tones, bay, pick, band, hash, vnoise, L, sphere, clamp1,
     surface, text, shadowMask, cast, contact, applyShadows, spriteShadow, ambient, vignette,
     // pintores por estilo (ver o topo do arquivo). posts[estilo de parede](S, look): uma camada
-    // transparente por cima de tudo (raios de sol); scenefx[estilo](ctx, ox, world): animação do
-    // cenário inteiro (poeira na luz, borboletas), em coordenadas novas da sala
+    // transparente por cima de tudo (raios de sol); scenefx[estilo](ctx, ox, world, look): animação
+    // do cenário inteiro (poeira na luz, borboletas, brilho no mar), em coordenadas novas da sala
     floors: {}, walls: {}, edges: {}, posts: {}, scenefx: {}
   };
 })();

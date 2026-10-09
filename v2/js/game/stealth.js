@@ -527,7 +527,7 @@ const StealthState = (() => {
       room.scenes.forEach(s => {
         if (!s.art || s.ox >= cam + VIEW_W || s.ox + Room.SW <= cam) return;
         if (s.post) ctx.drawImage(s.post, s.ox, 0);
-        if (s.fx) s.fx(ctx, s.ox, world);
+        if (s.fx) s.fx(ctx, s.ox, world, s.data.look);
       });
       // coraçõezinhos (no tamanho da V2): heartAt é da V1, relativo aos pés; no sprite novo, a cabeça
       // fica mais alta e mais larga (26×48 em vez de 16×32)

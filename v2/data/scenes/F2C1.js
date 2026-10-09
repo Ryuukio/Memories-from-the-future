@@ -13,6 +13,8 @@ SCENES.F2C1 = {
     floor: 'aptOutside',
     wall: { style: 'aptTop', height: 28, shadow: false },
     edge: 'aptWall',
+    // V2: a luz da tarde dentro de casa: sombras curtas e quentes
+    light: { k: [0.05, 0.12], color: '#B8AAA4', contact: '#86766E' },
     doors: { left: [166, 190], right: [34, 70] }
   },
 
