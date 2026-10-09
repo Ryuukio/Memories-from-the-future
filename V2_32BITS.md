@@ -6,6 +6,8 @@
 
 Para as etapas seguintes, abra uma conversa nova para cada uma e peça "faça a etapa N da V2". Conversas curtas gastam menos do limite de uso.
 
+**Uma etapa de cada vez.** Só comece a próxima depois que a conversa anterior terminar e disser que a etapa foi commitada e levada para a `main`: cada conversa nova começa a partir da `main` e só enxerga o que já chegou lá. Conversas ao mesmo tempo, neste projeto, já deram conflito e estouraram o limite de uso.
+
 ---
 
 ## 1. O que é a V2
@@ -27,7 +29,7 @@ A meta visual está em `docs/v2/`:
 - O `v2/data/config.js` começa igual ao da V1: textos, pistas, senhas, datas e dificuldade são os mesmos.
 - Continuam valendo todas as regras do `SPEC.md` e do `CLAUDE.md`: abre com dois cliques (`file://`), offline, scripts clássicos, sem `fetch`, sem módulos ES, sem bibliotecas da web; textos e dificuldade no `config.js`; comentários do código em português; nenhum logo, marca ou personagem de terceiros.
 - `referencias/` tem fotos pessoais: fica fora do git. Abra só as fotos do cenário que estiver construindo.
-- Um commit no fim de cada etapa, com mensagem em português.
+- Um commit no fim de cada etapa, com mensagem em português. Depois, leve o commit para a `main` (a próxima conversa começa dela) e envie para o GitHub (`git push origin main`). Termine dizendo ao Fabio que a etapa está na `main` e qual é a próxima.
 - Ao terminar cada etapa, atualize a seção "Estado" do `CLAUDE.md` com o que mudou na V2.
 
 ## 3. Resolução e coordenadas
