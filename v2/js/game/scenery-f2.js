@@ -3,21 +3,10 @@
 //
 // V2 (etapa 4): tudo é desenhado no tamanho novo, com as ferramentas de art.js. Cada objeto guarda o
 // tamanho, a colisão e a visão da V1 (coordenadas velhas; o Room.build amplia) e ganha um `art` com o
-// desenho novo (mais abaixo); os pisos, paredes e bordas novos ficam em Art.floors/walls/edges. Do
-// desenho da V1 só fica o que cenários das fases 3 e 4 ainda usam: as pedras da praia e o pilar do
-// cinema (fase 4), a parede lateral do apartamento, o piso e o céu do 'festival' e a geladeira (fase 3).
+// desenho novo (mais abaixo); os pisos, paredes e bordas novos ficam em Art.floors/walls/edges. O
+// desenho da V1 daqui saiu.
 (() => {
-  const { R, hash, glow, alpha, props, FLOORS, WALLS, EDGES } = Scenery;
-
-  function ell(c, x, y, w, h, color) {
-    for (let j = 0; j < h; j++) {
-      const dy = (j + 0.5 - h / 2) / (h / 2);
-      const half = Math.sqrt(Math.max(0, 1 - dy * dy)) * w / 2;
-      const x0 = Math.round(x + w / 2 - half), x1 = Math.round(x + w / 2 + half);
-      if (x1 > x0) R(x0, y + j, x1 - x0, 1, color, c);
-    }
-  }
-  const shadowRect = (c, x, y, w, h, a = 0.3) => alpha(c, a, () => R(x, y, w, h, '#140F1E', c));
+  const { props } = Scenery;
 
   // ---------- tamanho, colisão e visão dos objetos (V1; o desenho é o `art`, mais abaixo) ----------
   // A · praia: posto de salva-vidas, barraca (p.blue), guarda-sol (p.color), boia, canga (no fundo),
@@ -69,78 +58,8 @@
   props.bigTree = { size: () => [96, 84], solid: () => [40, 62, 16, 14], sight: () => [40, 52, 16, 26], base: 76 };
   props.bunting = { hidden: true, size: () => [1, 1] };
 
-  // ---------- desenho da V1 que as fases 3 e 4 ainda usam ----------
-  // pedras nas pontas da praia, com a passagem na areia
-  EDGES.beachRocks = (c, x, top, gap, side) => {
-    const segs = gap ? [[top, gap[0]], [gap[1], 192]] : [[top, 192]];
-    segs.forEach(([a, b]) => {
-      for (let y = a; y < b; y += 9) {
-        const v = hash(y, x);
-        ell(c, x - 4 + v % 3, y, 12, 11, '#8A8478');
-        ell(c, x - 3 + v % 3, y, 9, 8, '#A8A296');
-        R(x + v % 3, y + 2, 3, 1, '#C8C2B6', c);
-      }
-    });
-  };
-
-  EDGES.cinema = (c, x, top, gap, side) => {
-    const segs = gap ? [[top - 8, gap[0]], [gap[1], 192]] : [[top - 8, 192]];
-    segs.forEach(([a, b]) => { R(x, a, 4, b - a, '#2A2440', c); R(side === 'left' ? x + 3 : x, a, 1, b - a, '#0E0C18', c); });
-    if (gap) glow(c, side === 'left' ? x : x - 8, gap[0] + 2, 12, gap[1] - gap[0] - 4, '#F2C14E', i => 0.4 * (side === 'left' ? 1 - i / 12 : i / 12));
-  };
-
-  EDGES.aptWall = (c, x, top, gap, side) => {
-    const segs = gap ? [[top - 6, gap[0]], [gap[1], 192]] : [[top - 6, 192]];
-    segs.forEach(([a, b]) => { R(x, a, 4, b - a, '#F2EEE6', c); R(side === 'left' ? x + 3 : x, a, 1, b - a, '#8A8478', c); });
-  };
-
-  // geladeira pequena prateada com micro-ondas em cima (F3 A1)
-  props.fridge = {
-    size: () => [18, 30],
-    solid: () => [0, 10, 18, 18],
-    sight: () => [0, 0, 18, 28],
-    base: 28,
-    draw(c) {
-      shadowRect(c, 2, 26, 18, 4, 0.3);
-      R(0, 0, 18, 9, '#3A3640', c); R(2, 2, 10, 5, '#1E1C22', c); R(14, 3, 2, 3, '#8A929E', c);
-      R(0, 9, 18, 19, '#C9CED6', c); R(0, 9, 18, 1, '#E8ECF2', c); R(0, 17, 18, 1, '#8A929E', c);
-      R(14, 12, 1, 4, '#5E6470', c); R(14, 20, 1, 5, '#5E6470', c);
-    }
-  };
-
-  // armário de sapatos do genkan
-  props.shoeRack = {
-    size: () => [14, 30],
-    solid: () => [0, 0, 14, 28],
-    base: 28,
-    draw(c) {
-      R(0, 0, 14, 28, '#6A4228', c);
-      R(0, 0, 14, 2, '#8A5A32', c);
-      R(6, 3, 1, 22, '#4A2A16', c);
-    }
-  };
-
-  // grama pisada com trechos de terra
-  FLOORS.festival = (c, x, y, w, h) => {
-    R(x, y, w, h, '#7CB85A', c);
-    for (let i = 0; i < w * h / 10; i++) {
-      const v = hash(i, x + 31), px = x + v % w, py = y + (v >>> 9) % h;
-      R(px, py, 1, (v >>> 4) % 3 ? 1 : 2, ['#6AA84A', '#8CC86A', '#5E9A42', '#A0D07A'][(v >>> 6) % 4], c);
-    }
-    for (let i = 0; i < 9; i++) {
-      const v = hash(i, x + 8);
-      ell(c, x + v % (w - 60), y + 20 + (v >>> 9) % (h - 50), 40 + v % 30, 14 + (v >>> 5) % 10, '#B89A6A');
-    }
-  };
-  // céu e copas de árvores atrás das barracas
-  WALLS.festivalSky = (c, x, w, h) => {
-    Gfx.dither(c, x, 0, w, h, ['#9AD0F2', '#B8E0F8', '#D8EEFA'], 3);
-    for (let k = -10; k < w + 10; k += 22) {
-      const v = hash(k, x + 4) % 8;
-      ell(c, x + k, h - 18 - v, 36, 26, '#3E8A3E');
-      ell(c, x + k + 4, h - 20 - v, 22, 14, '#5DAA52');
-    }
-  };
+  // geladeira pequena prateada com o micro-ondas em cima (também na F3 A1)
+  props.fridge = { size: () => [18, 30], solid: () => [0, 10, 18, 18], sight: () => [0, 0, 18, 28], base: 28 };
 
   // ======================================================================
   //  V2 (art.js): tudo em coordenadas novas (480 × 240). Cada objeto guarda o tamanho, a colisão e a

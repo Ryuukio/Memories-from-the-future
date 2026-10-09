@@ -11,6 +11,8 @@ SCENES.F4C2 = {
     floor: 'dunes',
     wall: { style: 'duneSea', height: 50, shadow: false },
     edge: 'none',
+    // V2: fim de tarde nublado: sombras suaves e curtas, puxando para o lilás
+    light: { k: [0.25, 0.18], color: '#B4A8B8', contact: '#807488' },
     doors: { left: [96, 128], right: [96, 128] },
     slow: [[0, 50, 384, 142, 0.8]]
   },

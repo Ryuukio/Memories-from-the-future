@@ -10,8 +10,17 @@ SCENES.F4A2 = {
   look: {
     floor: 'aquarium',
     wall: { style: 'tank', height: 72, shadow: false },
-    edge: 'cinema',
-    doors: { left: [100, 132], right: [100, 132] }
+    edge: 'aquarium',                        // V2: parede escura com o brilho azul (a da V1 era 'cinema')
+    doors: { left: [100, 132], right: [100, 132] },
+    // V2: a sala escura; o tanque fica claro (as luzes de cima) e joga a luz azul no chão perto do vidro
+    tint: {
+      color: '#4E5C9C',
+      lights: [
+        [24, 20, 64, '#061420', '#E8F6FF'], [72, 20, 64, '#061420', '#E8F6FF'], [120, 20, 64, '#061420', '#E8F6FF'], [168, 20, 64, '#061420', '#E8F6FF'], [216, 20, 64, '#061420', '#E8F6FF'], [264, 20, 64, '#061420', '#E8F6FF'], [312, 20, 64, '#061420', '#E8F6FF'], [360, 20, 64, '#061420', '#E8F6FF'],
+        [24, 70, 72, '#0C2A48', '#B8DCF4'], [72, 70, 72, '#0C2A48', '#B8DCF4'], [120, 70, 72, '#0C2A48', '#B8DCF4'], [168, 70, 72, '#0C2A48', '#B8DCF4'], [216, 70, 72, '#0C2A48', '#B8DCF4'], [264, 70, 72, '#0C2A48', '#B8DCF4'], [312, 70, 72, '#0C2A48', '#B8DCF4'], [360, 70, 72, '#0C2A48', '#B8DCF4']
+      ]
+    },
+    light: { k: [0.04, 0.1], color: '#8890B8', contact: '#4A5078' }
   },
 
   start: { x: 14, y: 116, dir: 'right' },

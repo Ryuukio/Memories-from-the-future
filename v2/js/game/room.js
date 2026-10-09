@@ -23,9 +23,11 @@
 //   bounds: [x0, x1]   paredes laterais em x0 e x1 (o resto fica escuro e fechado; corredor e baú)
 //   edgeWidth: { left: 12 }   parede lateral mais grossa que os 4 px de sempre
 //   bottom: y          o chão termina em y (abaixo disso é parede)
-//   tint: { color, lights: [[x, y, raio, cor], ...] }   luz do ambiente (noite, planetário):
-//                      tudo é multiplicado pela cor, e as luzes clareiam em volta
+//   tint: { color, lights: [[x, y, raio, cor, clara], ...] }   luz do ambiente (noite, planetário):
+//                      tudo é multiplicado pela cor, e as luzes clareiam em volta (V2: `clara` = a
+//                      cor do ambiente bem perto da luz; padrão, branco quente)
 //   shadow: 'long'     sombras esticadas para baixo e para a direita (parque à tarde)
+//   coneLum: 0.4       V2: o cone vê o chão mais escuro (vermelho mais fundo), para o chão claro e frio
 //
 // Cenário já refeito na V2 (o estilo da parede existe em Art.walls; ver art.js): o fundo é pintado
 // direto em coordenadas novas pelos pintores do Art, os objetos com `art` vêm no tamanho novo e
@@ -85,7 +87,7 @@ const Room = (() => {
     }
     ['bounds', 'path', 'sea', 'pond', 'slope'].forEach(key => { if (L[key]) look[key] = kPair(L[key]); });
     ['bottom', 'split'].forEach(key => { if (typeof L[key] === 'number') look[key] = k(L[key]); });
-    if (L.tint) look.tint = Object.assign({}, L.tint, { lights: (L.tint.lights || []).map(([x, y, r, c]) => [k(x), k(y), k(r), c]) });
+    if (L.tint) look.tint = Object.assign({}, L.tint, { lights: (L.tint.lights || []).map(([x, y, r, ...rest]) => [k(x), k(y), k(r), ...rest]) });
     if (L.slow) look.slow = L.slow.map(kBox);
     if (L.water) look.water = Object.assign({}, L.water, L.water.drift ? { drift: L.water.drift * K } : {});
     const data = Object.assign({}, src, {
@@ -331,6 +333,13 @@ const Room = (() => {
     room.bg = Legacy.up(bg0);
     news.forEach(n => room.bg.cx.drawImage(n.cv, n.s.ox, 0));
     room.lum = groundLum(room.bg);
+    // look.coneLum: o cone enxerga o chão mais escuro (fica vermelho mais fundo), para aparecer no chão
+    // claro de cor fria (debaixo d'água, a areia verde-azulada viraria salmão acinzentado)
+    scenes.forEach(s => {
+      const f = s.data.look.coneLum;
+      if (!f) return;
+      for (let y = 0; y < SH; y++) for (let x = s.ox; x < s.ox + SW; x++) room.lum[y * room.w + x] *= f;
+    });
     // quem vai junto com outro (ride) anda depois dele
     room.movers.sort((a, b) => (a.def.ride ? 1 : 0) - (b.def.ride ? 1 : 0));
     room.movers.concat(room.guards).forEach(g => g.reset());

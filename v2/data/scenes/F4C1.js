@@ -9,9 +9,11 @@ SCENES.F4C1 = {
   look: {
     floor: 'stoneStreet',
     wall: { style: 'yanai', height: 56, shadow: false },
-    edge: 'cinema',
+    edge: 'yanai',                           // V2: pilar de madeira escura (a da V1 era 'cinema')
     doors: { left: [96, 128], right: [96, 128] },
     lightOnly: true,
+    // V2: à noite: sombras curtas, só a mancha de contato
+    light: { k: [0.04, 0.1], color: '#8A90B8', contact: '#4A5078' },
     // noite azulada; cada lanterna acende um círculo no chão (x, y, raio, cor)
     tint: {
       color: '#4A5290',

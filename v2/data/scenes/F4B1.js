@@ -8,9 +8,13 @@ SCENES.F4B1 = {
   look: {
     floor: 'seabed',
     wall: { style: 'reef', height: 30, shadow: false },
-    edge: 'beachRocks',
+    edge: 'reefRocks',                       // V2: pedras com alga, debaixo d'água (a da V1 era 'beachRocks')
     doors: { left: [96, 128], right: [96, 128] },
-    water: { speed: 0.65, drift: 10 }
+    water: { speed: 0.65, drift: 10 },
+    // V2: debaixo d'água: tudo fica verde-azulado; mais claro perto da superfície
+    tint: { color: '#BCD8E0', lights: [[96, -20, 150, '#000000', '#E8FAFF'], [288, -20, 150, '#000000', '#E8FAFF']] },
+    light: { k: [0.05, 0.12], color: '#7A9AB0', contact: '#4A6A80' },
+    coneLum: 0.35                             // o cone vermelho mais fundo, para aparecer na areia clara
   },
 
   start: { x: 14, y: 112, dir: 'right' },

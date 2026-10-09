@@ -11,6 +11,8 @@ SCENES.F4B2 = {
     floor: 'workshop',
     wall: { style: 'workshop', height: 52 },
     edge: 'wood',
+    // V2: as lâmpadas quentes da loja: sombras curtas
+    light: { k: [0.06, 0.14], color: '#B4A8A0', contact: '#7E6E66' },
     doors: { left: [96, 128], right: [96, 128] }
   },
 

@@ -5,20 +5,10 @@
 // V2 (etapa 3): tudo é desenhado no tamanho novo, com as ferramentas de art.js. Cada objeto guarda o
 // tamanho, a colisão e a visão da V1 (coordenadas velhas; o Room.build amplia) e ganha um `art` com o
 // desenho novo; os pisos, paredes e bordas novos ficam em Art.floors/walls/edges. A árvore, o
-// arbusto e a sebe também aparecem em cenários das fases 3 e 4 que ainda são da V1: para eles, o
-// desenho velho (draw, EDGES.hedge) continua aqui.
+// arbusto e a sebe também aparecem nas fases 3 e 4, e as ferramentas daqui que as outras fases
+// reaproveitam ficam em Art.kit (no fim do arquivo).
 (() => {
-  const { R, hash, alpha, props, EDGES } = Scenery;
-
-  // elipse cheia, linha a linha (desenho da V1: copas)
-  function ell(c, x, y, w, h, color) {
-    for (let j = 0; j < h; j++) {
-      const dy = (j + 0.5 - h / 2) / (h / 2);
-      const half = Math.sqrt(Math.max(0, 1 - dy * dy)) * w / 2;
-      const x0 = Math.round(x + w / 2 - half), x1 = Math.round(x + w / 2 + half);
-      if (x1 > x0) R(x0, y + j, x1 - x0, 1, color, c);
-    }
-  }
+  const { props } = Scenery;
 
   // objeto invisível que só ocupa lugar (e, se quiser, tapa a visão)
   props.block = {
@@ -74,59 +64,9 @@
   // F1 C2: brinquedo de mola do parquinho
   props.springRider = { size: () => [18, 26], solid: () => [4, 18, 10, 6], base: 24 };
 
-  // ---------- árvore, arbusto e sebe (também nas fases 3 e 4: aqui o desenho da V1) ----------
-  // árvore com copa redonda e arbusto (p.night: cores da noite)
-  function treeColors(p) {
-    if (p.night) return { dark: '#16302A', mid: '#1E3E34', light: '#2C5644', hi: '#3C6E58', trunk: '#3A2A22', trunkD: '#261A14' };
-    return { dark: '#2F7436', mid: '#3E8A3E', light: '#56A44C', hi: '#7CC45C', trunk: '#7A5232', trunkD: '#5A3A22' };
-  }
-  props.tree = {
-    size: () => [48, 60],
-    solid: () => [19, 50, 10, 8],
-    sight: () => [14, 30, 20, 28],
-    base: 58,
-    draw(c, p) {
-      const k = treeColors(p);
-      alpha(c, 0.35, () => ell(c, 8, 50, 36, 10, '#140F1E'));
-      R(20, 34, 8, 22, k.trunk, c);
-      R(20, 34, 2, 22, k.trunkD, c);
-      R(18, 54, 12, 3, k.trunk, c);
-      ell(c, 2, 2, 44, 40, k.dark);
-      ell(c, 4, 2, 40, 34, k.mid);
-      ell(c, 8, 4, 22, 18, k.light);
-      ell(c, 26, 10, 14, 12, k.light);
-      for (let i = 0; i < 26; i++) {
-        const v = hash(i, p.x + 7);
-        R(6 + v % 34, 4 + (v >>> 6) % 30, 2, 1, (v >>> 3) % 2 ? k.hi : k.dark, c);
-      }
-    }
-  };
-  props.bush = {
-    size: () => [26, 18],
-    solid: () => [2, 8, 22, 8],
-    sight: () => [2, 4, 22, 12],
-    base: 16,
-    draw(c, p) {
-      const k = treeColors(p);
-      alpha(c, 0.35, () => ell(c, 2, 12, 24, 6, '#140F1E'));
-      ell(c, 0, 2, 26, 15, k.dark);
-      ell(c, 2, 1, 14, 10, k.mid);
-      ell(c, 11, 3, 13, 10, k.mid);
-      R(5, 3, 3, 1, k.hi, c);
-      R(15, 5, 3, 1, k.hi, c);
-    }
-  };
-
-  // sebe com a passagem
-  EDGES.hedge = (c, x, top, gap, side) => {
-    const wx = side === 'left' ? x : x - 4;
-    const segs = gap ? [[top - 6, gap[0]], [gap[1], 192]] : [[top - 6, 192]];
-    segs.forEach(([a, b]) => {
-      R(wx, a, 8, b - a, '#2F7436', c);
-      for (let y = a; y < b; y += 5) ell(c, wx - 1, y, 10, 7, '#3E8A3E');
-      for (let y = a + 2; y < b; y += 5) R(wx + 2, y, 3, 1, '#56A44C', c);
-    });
-  };
+  // ---------- árvore e arbusto (também nas fases 3 e 4); p.night: as cores da noite ----------
+  props.tree = { size: () => [48, 60], solid: () => [19, 50, 10, 8], sight: () => [14, 30, 20, 28], base: 58 };
+  props.bush = { size: () => [26, 18], solid: () => [2, 8, 22, 8], sight: () => [2, 4, 22, 12], base: 16 };
 
   // ======================================================================
   //  F1 A2 · Ice cream at Mirai Tower — parque em Sakae, tarde de verão

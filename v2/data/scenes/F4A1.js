@@ -9,8 +9,10 @@ SCENES.F4A1 = {
   look: {
     floor: 'zoo',
     path: [92, 140],
-    wall: { style: 'festivalSky', height: 26, shadow: false },
+    wall: { style: 'zooSky', height: 26, shadow: false },   // V2: céu próprio (o 'festivalSky' da V1 era de outras fases também)
     edge: 'hedge',
+    // V2: tarde de sol na primavera: sombras médias para a direita
+    light: { k: [0.5, 0.3], color: '#AEB4CC', contact: '#787E9A' },
     doors: { left: [96, 128], right: [96, 128] }
   },
 

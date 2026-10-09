@@ -55,7 +55,7 @@ const Scenery = (() => {
 
   // ================= pisos =================
   // FLOORS[nome]: uma tábua ({ tones, seam, grain }, pintada por planks) ou uma função (ver paintBase).
-  // Os pisos da V1 que continuam (fases 2 a 4) estão nos arquivos scenery-*.js de cada fase.
+  // Os pisos da V1 que continuam (as cenas da história, até a etapa 5) estão em scenery-story.js.
   const FLOORS = {};
 
   function planks(c, x0, y0, w, h, f, seed) {
@@ -84,12 +84,12 @@ const Scenery = (() => {
   }
 
   // ================= paredes =================
-  // WALLS[nome](c, x, w, h, look): a parede do fundo da V1 (as das fases 2 a 4 estão em scenery-*.js)
+  // WALLS[nome](c, x, w, h, look): a parede do fundo da V1 (as das cenas da história, em scenery-story.js)
   const WALLS = {};
 
   // ================= objetos =================
   // Tamanho, colisão e visão da V1 (coordenadas velhas; o Room.build amplia). O desenho é o `art`
-  // (V2, mais abaixo); só a planta, que também aparece nas fases 2 e 4, ainda tem o draw da V1.
+  // (V2, mais abaixo).
   const props = {};
 
   // mesa de madeira escura com a chapa embutida (F1 A1). p.food, p.items ('left' | 'right' | 'both'),
@@ -111,24 +111,7 @@ const Scenery = (() => {
   props.noren = { layer: 'back', size: () => [48, 44] };
 
   // planta num vaso de barro
-  props.plant = {
-    size: () => [18, 30],
-    solid: () => [3, 22, 12, 8],
-    sight: () => [3, 20, 12, 10],
-    base: 30,
-    draw(c) {
-      alpha(c, 0.35, () => R(2, 27, 15, 3, '#140F1E', c));
-      const leaves = [[8, 0, 9], [5, 3, 7], [11, 2, 8], [3, 7, 5], [13, 6, 6], [7, 4, 8], [10, 5, 8], [1, 11, 4], [15, 10, 4]];
-      leaves.forEach(([x, y, h], i) => {
-        R(x, y, 2, h + 6, i % 2 ? '#2E6A3E' : '#3F8A4E', c);
-        R(x, y, 1, h + 4, '#5DAA62', c);
-      });
-      R(3, 19, 12, 2, '#C8724A', c);
-      R(4, 21, 10, 8, '#A85A3A', c);
-      R(4, 21, 2, 8, '#C8724A', c);
-      R(12, 21, 2, 8, '#8A4A30', c);
-    }
-  };
+  props.plant = { size: () => [18, 30], solid: () => [3, 22, 12, 8], sight: () => [3, 20, 12, 10], base: 30 };
 
   // ================= bordas laterais (com as passagens) =================
   // EDGES[estilo](c, x, top, gap, side): x = coluna de 4 px da parede lateral, top = altura da
