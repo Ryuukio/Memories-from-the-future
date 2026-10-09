@@ -8,7 +8,9 @@ SCENES.CHEST = {
     edge: 'hall',
     bounds: [104, 280],
     bottom: 164,
-    doors: { left: [96, 128] }
+    doors: { left: [96, 128] },
+    // V2: a luz das arandelas, de cima: só uma sombra curta embaixo de cada um
+    light: { k: [0.05, 0.12], color: '#8A80A8', contact: '#4A4068' }
   },
 
   start: { x: 122, y: 118, dir: 'right' },

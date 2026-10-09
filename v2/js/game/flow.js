@@ -40,6 +40,8 @@ const Flow = {
         this.enterRoom(n, 0, 0, n === 1 ? GAME_CONFIG.texts.arrival : null);
       }
     });
+    // V2: enquanto o cartão está na tela, pinta antes os cenários da fase (só desenho; ver room.js)
+    Room.warm(rooms.concat([['HALL'], ['CHEST']]), 'card');
   },
 
   // depois da fase 4: a livraria-café

@@ -12,7 +12,9 @@ SCENES.F1C2 = {
     edge: 'trees',
     doors: { left: [96, 128], right: [96, 128] },
     // noite: tudo fica azulado, e os postes acendem um círculo de luz
-    tint: { color: '#6C74B4', lights: [[241, 50, 56, '#4A3C1C'], [43, 140, 40, '#3A2E16']] }
+    tint: { color: '#6C74B4', lights: [[241, 50, 56, '#4A3C1C'], [43, 140, 40, '#3A2E16']] },
+    // V2: à noite, ao luar: sombras bem curtas e a mancha de contato embaixo de cada coisa
+    light: { k: [0.06, 0.12], color: '#9098BC', contact: '#5A6080' }
   },
 
   start: { x: 18, y: 118, dir: 'right' },

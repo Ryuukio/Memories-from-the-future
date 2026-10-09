@@ -15,7 +15,9 @@ SCENES.F1C1 = {
     floor: 'terracotta',
     wall: { style: 'saizeriya', height: 44 },
     edge: 'wood',
-    doors: { left: [96, 128], right: [96, 128] }
+    doors: { left: [96, 128], right: [96, 128] },
+    // V2: à noitinha, a luz quente das arandelas e do teto: sombras curtas logo abaixo de cada coisa
+    light: { k: [0.08, 0.15], color: '#B4A098', contact: '#7A5E58' }
   },
 
   start: { x: 20, y: 118, dir: 'right' },

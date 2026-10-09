@@ -26,6 +26,17 @@
 //   tint: { color, lights: [[x, y, raio, cor], ...] }   luz do ambiente (noite, planetário):
 //                      tudo é multiplicado pela cor, e as luzes clareiam em volta
 //   shadow: 'long'     sombras esticadas para baixo e para a direita (parque à tarde)
+//
+// Cenário já refeito na V2 (o estilo da parede existe em Art.walls; ver art.js): o fundo é pintado
+// direto em coordenadas novas pelos pintores do Art, os objetos com `art` vêm no tamanho novo e
+// projetam a sombra no chão (look.light), os efeitos com fxNew e a luz do ambiente (look.tint)
+// também são novos. O fundo pronto de cada cenário fica em cache pelo código. Objeto sem `art`
+// num cenário novo continua com o desenho da V1 ampliado.
+//   room.scenes[i].art     true = cenário da V2
+//   room.scenes[i].amb     luz do ambiente pronta ({ dark, glow }, 480 × 240), se tiver look.tint
+//   room.scenes[i].post    camada de luz por cima de tudo (Art.posts: raios de sol), se tiver
+//   room.scenes[i].fx      animação do cenário inteiro (Art.scenefx: poeira na luz), se tiver
+//   room.lum               o brilho do chão em cada pixel do fundo (o cone muda de tom com ele)
 const Room = (() => {
   const K = Legacy.K;
   const SW0 = 384, SH0 = 192, WALL = 4;   // um cenário na V1 (coordenadas velhas)
@@ -106,6 +117,79 @@ const Room = (() => {
     return { x: x - 7, y: y - 10, w: 14, h: 10 };
   }
 
+  // ---------- arte da V2 ----------
+  const isNew = look => !!Art.walls[look.wall.style];
+  const artCache = {}, bgCache = {}, ambCache = {}, postCache = {};
+
+  // Desenho novo de um objeto (o art dele, em cache): { spr, img, dx, dy, shadow, H, base, contact }.
+  // dx, dy = deslocamento em px novos a partir de (x, y) × 1,25. p = o objeto no cenário
+  // (coordenadas velhas, x relativo ao cenário).
+  function propArt(def, p) {
+    const key = JSON.stringify(p);
+    if (!artCache[key]) {
+      const a = Object.assign({ dx: 0, dy: 0, shadow: 'up' }, def.art(p));
+      a.img = a.spr.canvas();
+      artCache[key] = a;
+    }
+    return artCache[key];
+  }
+
+  // Fundo de um cenário da V2 (480 × 240): piso, parede, bordas, os objetos do fundo e as sombras
+  // dos objetos parados (casters: [{ a, x, y, base }], em px novos do cenário)
+  function paintNew(s, backs, casters, olds) {
+    if (bgCache[s.code]) return bgCache[s.code];
+    const look = s.data.look, S = Art.surface(SW, SH), wallH = look.wall.height;
+    const floor = Art.floors[look.floor];
+    if (!floor) throw new Error('Piso sem pintor da V2: ' + look.floor);
+    floor(S, look);
+    Art.walls[look.wall.style](S, look);
+    const doors = look.doors || {}, [b0, b1] = look.bounds || [0, SW], w5 = k(WALL);
+    ['left', 'right'].forEach(side => {
+      const style = (look.edges && look.edges[side]) || look.edge || 'wood';
+      const edge = Art.edges[style];
+      if (!edge) throw new Error('Borda sem pintor da V2: ' + style);
+      S.clip();
+      edge(S, side === 'left' ? b0 : b1 - w5, wallH, doors[side] || null, side, look);
+    });
+    S.clip();
+    backs.forEach(b => S.blit(b.a.spr, b.x, b.y));
+    if (look.light) {
+      const mask = Art.shadowMask(SW, SH), kk = look.light.k || [0.2, 0.1];
+      casters.forEach(c => {
+        if (c.a.shadow) Art.cast(mask, c.a.spr, c.x, c.y, c.base, kk, c.a.shadow, c.a.H || 0);
+        if (c.a.contact) { const [cx, cy, rx, ry] = c.a.contact; Art.contact(mask, c.x + cx, c.y + cy, rx, ry); }
+      });
+      Art.applyShadows(S, mask, look.light, wallH);
+    }
+    const cv = S.canvas();
+    // objetos do fundo ainda sem desenho novo: o da V1, ampliado
+    olds.forEach(o => { const u = Legacy.upAt(o.img, o.x, o.y); cv.cx.drawImage(u.img, u.x, u.y); });
+    return (bgCache[s.code] = cv);
+  }
+
+  // Pinta antes os fundos da V2 (a primeira montagem leva uns 0,2 s por sala; depois fica em cache):
+  // uma sala por vez, só enquanto o estado `while` (o cartão da fase) estiver na tela
+  function warm(list, whileState) {
+    const queue = list.filter(codes => codes.some(c => SCENES[c] && isNew(SCENES[c].look)));
+    let started = false, tries = 0;
+    const next = () => {
+      if (!queue.length) return;
+      // o cartão entra com a transição: espera ele aparecer (até ~2 s); depois que sair, para
+      if (Game.name !== whileState) { if (!started && tries++ < 20) setTimeout(next, 100); return; }
+      started = true;
+      try { build(queue.shift()); } catch (e) { console.error(e); return; }
+      setTimeout(next, 40);
+    };
+    setTimeout(next, 150);
+  }
+
+  // brilho de cada pixel do fundo (0 a 255), para o cone mudar de tom conforme o chão
+  function groundLum(cv) {
+    const d = cv.cx.getImageData(0, 0, cv.width, cv.height).data, out = new Uint8Array(cv.width * cv.height);
+    for (let i = 0; i < out.length; i++) out[i] = (d[i * 4] * 77 + d[i * 4 + 1] * 150 + d[i * 4 + 2] * 29) >> 8;
+    return out;
+  }
+
   // a montagem desenha a arte velha (fundo e objetos, com os letreiros na fonte da V1)
   function build(codes) {
     const prevFont = Gfx.font('v1');
@@ -134,10 +218,13 @@ const Room = (() => {
       if (blocksSight) room.sight.push(kRect(r));
     };
 
+    const news = [];
     scenes.forEach((s, idx) => {
       const { src, ox0: ox } = s, look = src.look, wallH = look.wall.height;
       const [bx0, bx1] = look.bounds || [0, SW0];
-      Scenery.paintBase(bg0.cx, ox, look);
+      s.art = isNew(look);
+      const backs = [], casters = [], olds = [];
+      if (!s.art) Scenery.paintBase(bg0.cx, ox, look);
 
       // parede do fundo e paredes laterais, com as passagens (edgeWidth: parede mais grossa, ex.: a
       // fachada do restaurante no parque)
@@ -163,19 +250,40 @@ const Room = (() => {
         if (p.textKey) p.text = s.cfg[p.textKey] || '';
         // texto em outro lugar do config (ex.: 'texts.prologue.neonSign')
         if (p.textPath) p.text = p.textPath.split('.').reduce((o, k) => (o ? o[k] : ''), GAME_CONFIG) || '';
-        const g = Scenery.geometry(p), img = Scenery.render(p);
+        const g = Scenery.geometry(p), def = g.def;
         if (g.solid) solid(g.solid, false);
         if (g.sight) room.sight.push(kRect(g.sight));
-        if (g.def.layer === 'back') bg0.cx.drawImage(img, p.x, p.y);
-        else if (!g.def.hidden) {
-          const o = { z: g.z, img, x: p.x, y: p.y, w: g.w, p };
-          // o que não anima vai para a tela já ampliado (big), no meio dos personagens novos
-          if (!g.def.live && !g.def.liveNew) { const u = Legacy.upAt(img, p.x, p.y); o.big = u.img; o.bx = u.x; o.by = u.y; }
-          room.sorted.push(o);
+        if (s.art && def.art && !def.hidden) {
+          // V2: desenho novo, em px novos do cenário (lx, ly) e da sala (s.ox + lx)
+          const a = propArt(def, Object.assign({}, p, { x: p0.x }));
+          const lx = k(p0.x) + a.dx, ly = k(p.y) + a.dy, base = a.base !== undefined ? ly + a.base : k(g.z);
+          if (def.layer === 'back') backs.push({ a, x: lx, y: ly });
+          else if (!def.live && !def.liveNew) room.sorted.push({ z: g.z, img: a.img, big: a.img, bx: s.ox + lx, by: ly, x: p.x, y: p.y, w: g.w, p });
+          if (a.shadow || a.contact) casters.push({ a, x: lx, y: ly, base });
         }
-        if (g.def.fx) room.fx.push({ def: g.def, p, layer: g.def.fxLayer || 'top' });
+        if (s.art && def.liveNew) room.sorted.push({ z: g.z, x: p.x, y: p.y, w: g.w, p });
+        if (!(s.art && (def.art || def.liveNew))) {
+          const img = Scenery.render(p);
+          if (def.layer === 'back') {
+            if (s.art) olds.push({ img, x: p0.x, y: p.y });
+            else bg0.cx.drawImage(img, p.x, p.y);
+          } else if (!def.hidden) {
+            const o = { z: g.z, img, x: p.x, y: p.y, w: g.w, p };
+            // o que não anima vai para a tela já ampliado (big), no meio dos personagens novos
+            if (!def.live && !def.liveNew) { const u = Legacy.upAt(img, p.x, p.y); o.big = u.img; o.bx = u.x; o.by = u.y; }
+            room.sorted.push(o);
+          }
+        }
+        // num cenário da V2, o efeito novo (fxNew) desenha direto em coordenadas novas
+        if (s.art && def.fxNew) room.fx.push({ def, p, layer: def.fxLayer || 'top', isNew: true });
+        else if (def.fx) room.fx.push({ def, p, layer: def.fxLayer || 'top' });
         if (p.interact) room.interact.push({ kind: p.interact, p, rect: kRect({ x: p.x, y: p.y, w: g.w, h: g.h }), base: g.solid && kRect(g.solid) });
-        if (p.food && p.steam !== false) room.steam.push({ x: p.x + 32, y: p.y + 6, seed: room.steam.length * 1.7 });
+        if (p.food && p.steam !== false) {
+          const st = { x: p.x + 32, y: p.y + 6, seed: room.steam.length * 1.7 };
+          // num cenário da V2, o vapor já fica em coordenadas novas
+          if (s.art) Object.assign(st, { x: st.x * K, y: st.y * K, isNew: true });
+          room.steam.push(st);
+        }
       });
 
       // NPCs parados: inofensivos, mas ocupam lugar e bloqueiam a visão
@@ -210,8 +318,19 @@ const Room = (() => {
         room.guards.push(g);
         if (gd.pose === 'sit' && !gd.ride) solid(footprint(ox + g0.x, g0.y, 'sit', gd.face), false);
       });
+
+      if (s.art) {
+        news.push({ s, cv: paintNew(s, backs, casters, olds) });
+        const L2 = s.data.look, tint = L2.tint, post = Art.posts[L2.wall.style];
+        if (tint) s.amb = ambCache[s.code] || (ambCache[s.code] = Art.ambient(SW, SH, tint));
+        if (post && !postCache[s.code]) { const P = Art.surface(SW, SH); post(P, L2); postCache[s.code] = P.canvas(); }
+        if (post) s.post = postCache[s.code];
+        s.fx = Art.scenefx[L2.wall.style] || null;
+      }
     });
     room.bg = Legacy.up(bg0);
+    news.forEach(n => room.bg.cx.drawImage(n.cv, n.s.ox, 0));
+    room.lum = groundLum(room.bg);
     // quem vai junto com outro (ride) anda depois dele
     room.movers.sort((a, b) => (a.def.ride ? 1 : 0) - (b.def.ride ? 1 : 0));
     room.movers.concat(room.guards).forEach(g => g.reset());
@@ -233,5 +352,5 @@ const Room = (() => {
     return Chars.sprite(n.who, { pose: n.pose, dir: n.dir, head: n.head, frame });
   }
 
-  return { build, sceneConfig, footprint, npcSprite, scaled: scaleScene, SW, SH, SW0, SH0, K };
+  return { build, warm, sceneConfig, footprint, npcSprite, scaled: scaleScene, SW, SH, SW0, SH0, K };
 })();

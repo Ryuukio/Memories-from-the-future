@@ -247,15 +247,17 @@ const Guard = (() => {
     Gfx.text(text, bx + 5, by + 3, '#D8283C');
   }
 
-  // coraçõezinhos subindo no beijo
-  const HEART = ['.#.#.', '#####', '#####', '.###.', '..#..'];
+  // coraçõezinhos subindo no beijo (no tamanho da V2, em coordenadas novas): brilho em cima e à
+  // esquerda, sombra embaixo e à direita, contorno vinho
+  const HEART = ['.oo.oo.', 'oHhoaho', 'ohhaaao', 'ohaaado', '.oaadd.', '..odo..', '...o...'];
+  const HEART_COL = { o: '#7A1E3E', H: '#FFFFFF', h: '#FFB0C6', a: '#F0587E', d: '#C23A62' };
   function hearts(ctx, x, y, t) {
     for (let k = 0; k < 2; k++) {
       const ph = (t * 0.6 + k * 0.5) % 1;
-      const hx = Math.round(x + Math.sin((t + k * 1.3) * 3) * 2) - 2, hy = Math.round(y - ph * 14);
+      const hx = Math.round(x + Math.sin((t + k * 1.3) * 3) * 2.5) - 3, hy = Math.round(y - 2 - ph * 18);
       ctx.globalAlpha = ph < 0.75 ? 1 : (1 - ph) * 4;
       HEART.forEach((row, j) => {
-        for (let i = 0; i < 5; i++) if (row[i] === '#') Gfx.rect(hx + i, hy + j, 1, 1, j === 1 && i === 1 ? '#FFC2D2' : '#F0587E');
+        for (let i = 0; i < row.length; i++) if (HEART_COL[row[i]]) Gfx.rect(hx + i, hy + j, 1, 1, HEART_COL[row[i]]);
       });
     }
     ctx.globalAlpha = 1;

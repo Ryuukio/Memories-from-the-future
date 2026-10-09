@@ -458,30 +458,22 @@ const Chars = (() => {
     });
   }
 
-  // Cadeiras dos personagens sentados: a da V1 (Scenery.chairSide/chairBack) ampliada 1,25× e
-  // alinhada ao assento do sprite novo. De lado vai por baixo da pessoa; de costas, o encosto vai
-  // por cima. chair: true = a do okonomiyaki, ou o nome de outro estilo de Scenery.CHAIRS.
+  // Cadeiras dos personagens sentados: as da V2 (Scenery.chairArt, 20 × 43), no lugar da da V1
+  // ampliada e alinhadas ao assento do sprite novo. De lado vai por baixo da pessoa; de costas, o
+  // encosto vai por cima. chair: true = a do okonomiyaki, ou o nome de outro estilo ('cafe').
   const chairs = {};
   function chair(dir, style) {
     style = typeof style === 'string' ? style : 'okonomiyaki';
     const key = style + '|' + dir;
-    if (!chairs[key]) {
-      const cv = Gfx.canvas(16, 34);
-      if (dir === 'up') Scenery.chairBack(cv.cx, style);
-      else {
-        if (dir === 'left') { cv.cx.translate(16, 0); cv.cx.scale(-1, 1); }
-        Scenery.chairSide(cv.cx, style);
-      }
-      chairs[key] = Legacy.up(cv);
-    }
-    return chairs[key];
+    return chairs[key] || (chairs[key] = Scenery.chairArt(dir, style).canvas());
   }
 
   return {
     W, H,
     // Desenha com a sombra no chão e, se estiver sentado numa cadeira, a cadeira na ordem certa.
     // x, y = os pés, em coordenadas da tela da V2.
-    // o.shadow: false = sem sombra; 'long' = esticada para baixo e para a direita (parque à tarde)
+    // o.shadow: false = sem sombra; 'long' = esticada para baixo e para a direita (parque à tarde);
+    // { k, color, contact } = a luz de um cenário da V2 (o desenho projetado no chão; ver art.js)
     // Deitado ou nadando de lado (na horizontal): o meio do corpo em x e a base em y.
     // o.wade: n = dentro da água até a cintura (n = linhas escondidas na V1; aqui × 1,5, com marolinhas).
     // o.gear: 'ski' = esquis e bastões; o.look = para onde está virado (direção do sprite).
@@ -507,7 +499,14 @@ const Chars = (() => {
       if (o.gear === 'ski') skis(ctx, x, y, o.look || o.dir || 'down');
       if (swim) Gfx.shadow(x + 5, y + 4, 16, 6, 0.2);
       const sitting = o.pose === 'sit', side = o.dir === 'left' || o.dir === 'right';
-      if (o.shadow === 'long') {
+      if (o.shadow && typeof o.shadow === 'object' && !swim) {
+        // cenário da V2: o desenho projetado no chão pela luz do cenário (look.light; ver art.js)
+        const sh = Art.spriteShadow(img, o.shadow);
+        ctx.save();
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.drawImage(sh.cv, sx + sh.dx, sy + sh.dy);
+        ctx.restore();
+      } else if (o.shadow === 'long') {
         Gfx.shadow(x + 2, y, 18, 6);
         Gfx.shadow(x + 10, y + 3, 18, 6, 0.2);
       } else if (o.shadow !== false && !swim) {

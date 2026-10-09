@@ -286,21 +286,31 @@ const StealthState = (() => {
   }
 
   // ---------- desenho ----------
-  // vapor da comida (desenho da V1: coordenadas velhas, dentro da camada)
-  function drawSteam(ctx) {
+  // vapor da comida. old: o da V1 (coordenadas velhas, dentro da camada); senão, o dos cenários da
+  // V2 (isNew: coordenadas novas, fiapos um pouco maiores e com uma volta)
+  function drawSteam(ctx, old) {
     room.steam.forEach(s => {
+      if (!s.isNew !== !!old) return;
       for (let k = 0; k < 3; k++) {
         const ph = (time * 0.7 + k / 3 + s.seed) % 1;
-        const x = s.x - 3 + k * 3 + Math.round(Math.sin((time + k) * 2.5));
-        ctx.globalAlpha = 0.75 * (1 - ph);
-        Gfx.rect(x, s.y - 2 - ph * 14, 1, 2, '#F2ECE0');
+        if (old) {
+          const x = s.x - 3 + k * 3 + Math.round(Math.sin((time + k) * 2.5));
+          ctx.globalAlpha = 0.75 * (1 - ph);
+          Gfx.rect(x, s.y - 2 - ph * 14, 1, 2, '#F2ECE0');
+          continue;
+        }
+        const x = Math.round(s.x - 4 + k * 4 + Math.sin((time + k) * 2.5 + ph * 3) * 1.5), y = Math.round(s.y - 3 - ph * 18);
+        ctx.globalAlpha = 0.6 * (1 - ph);
+        Gfx.rect(x, y, 1, 3, '#FFFFFF');
+        Gfx.rect(x + (Math.sin(ph * 9 + k) > 0 ? 1 : -1), y + 2, 1, 2, '#F2ECE0');
       }
     });
     ctx.globalAlpha = 1;
   }
 
   // Luz do ambiente (noite, planetário): multiplica a parte visível do cenário pela cor e
-  // acende as luzes (lanterna, poste) com pontilhado, em volta delas.
+  // acende as luzes (lanterna, poste) com pontilhado, em volta delas. Nos cenários da V2, as duas
+  // camadas já vêm prontas do Room.build (s.amb: o escuro, que multiplica, e o brilho, somado).
   function drawTint(ctx, cam) {
     room.scenes.forEach(s => {
       const tint = s.data.look.tint;
@@ -312,6 +322,13 @@ const StealthState = (() => {
       ctx.rect(x0, 0, x1 - x0, VIEW_H);
       ctx.clip();
       ctx.globalCompositeOperation = 'multiply';
+      if (s.amb) {
+        ctx.drawImage(s.amb.dark, s.ox, 0);
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.drawImage(s.amb.glow, s.ox, 0);
+        ctx.restore();
+        return;
+      }
       Gfx.rect(x0, 0, x1 - x0, VIEW_H, tint.color);
       ctx.globalCompositeOperation = 'lighter';
       (tint.lights || []).forEach(([lx, ly, r, color]) => {
@@ -329,8 +346,11 @@ const StealthState = (() => {
     return !!(s.cfg.dates || s.cfg.lines) && ellen.x - s.ox >= (s.data.look.split || Room.SW / 2);
   }
 
+  // sombra de quem está em x: nos cenários da V2, a luz do cenário (look.light: o desenho projetado
+  // no chão); nos outros, o look.shadow da V1
   function shadowAt(x) {
-    return room.scenes[sceneAt(x)].data.look.shadow;
+    const s = room.scenes[sceneAt(x)], look = s.data.look;
+    return s.art && look.light ? look.light : look.shadow;
   }
 
   function drawDebug(ctx) {
@@ -444,6 +464,7 @@ const StealthState = (() => {
 
       // cones no chão, por baixo dos móveis e dos personagens
       Vision.begin(VIEW_W, VIEW_H);
+      Vision.ground(room.lum, room.w);
       const pulse = 0.5 + 0.5 * Math.sin(time * 14);
       room.guards.forEach(g => { if (g.coneScale > 0) Vision.paint(g._cone, cam, 0, g.seeing ? pulse : 0); });
       Vision.end(ctx, 0, TOP);
@@ -458,8 +479,10 @@ const StealthState = (() => {
       const old = { t: time, ellen: { x: ellen.x / K, y: ellen.y / K } };
       const cam0 = cam / K, view0 = VIEW_W / K;
       const visible = (x, w) => x + w >= cam0 - 16 && x <= cam0 + view0 + 16;
+      // efeitos no chão: os da V2 (fxNew) direto; os da V1 na camada velha
       const ground = room.fx.filter(f => f.layer === 'ground' && visible(f.p.x, 64));
-      if (ground.length) Legacy.world(ctx, cam, lc => ground.forEach(f => f.def.fx(lc, f.p, old)));
+      ground.forEach(f => { if (f.isNew) f.def.fxNew(ctx, f.p, world); });
+      if (ground.some(f => !f.isNew)) Legacy.world(ctx, cam, lc => ground.forEach(f => { if (!f.isNew) f.def.fx(lc, f.p, old); }));
 
       const list = [];
       room.sorted.forEach(o => {
@@ -491,23 +514,29 @@ const StealthState = (() => {
       }
 
       const top = room.fx.filter(f => f.layer === 'top' && visible(f.p.x, 64));
-      if (room.steam.length || top.length) {
+      if (room.steam.some(s => !s.isNew) || top.some(f => !f.isNew)) {
         Legacy.world(ctx, cam, lc => {
-          drawSteam(lc);
-          top.forEach(f => f.def.fx(lc, f.p, old));
+          drawSteam(lc, true);
+          top.forEach(f => { if (!f.isNew) f.def.fx(lc, f.p, old); });
         });
       }
+      drawSteam(ctx, false);
+      top.forEach(f => { if (f.isNew) f.def.fxNew(ctx, f.p, world); });
       drawTint(ctx, cam);
-      if (params.marker || room.guards.some(g => g.fx === 'heart')) Legacy.world(ctx, cam, lc => {
-        // coraçõezinhos (desenho da V1): heartAt é da V1, relativo aos pés; no sprite novo, a cabeça
-        // fica mais alta e mais larga (26×48 em vez de 16×32)
-        room.guards.forEach(g => {
-          if (g.fx !== 'heart') return;
-          const at = g.def.heartAt || [0, -34];
-          Guard.hearts(lc, (g.x + at[0] * 1.6) / K, (g.y + at[1] * 1.5) / K, time);
-        });
-        if (params.marker) Story.marker(lc, params.marker[0] / K, params.marker[1] / K, time);
+      // cenários da V2: a camada de luz (raios de sol) e a animação do cenário (poeira, borboletas)
+      room.scenes.forEach(s => {
+        if (!s.art || s.ox >= cam + VIEW_W || s.ox + Room.SW <= cam) return;
+        if (s.post) ctx.drawImage(s.post, s.ox, 0);
+        if (s.fx) s.fx(ctx, s.ox, world);
       });
+      // coraçõezinhos (no tamanho da V2): heartAt é da V1, relativo aos pés; no sprite novo, a cabeça
+      // fica mais alta e mais larga (26×48 em vez de 16×32)
+      room.guards.forEach(g => {
+        if (g.fx !== 'heart') return;
+        const at = g.def.heartAt || [0, -34];
+        Guard.hearts(ctx, g.x + at[0] * 1.6, g.y + at[1] * 1.5, time);
+      });
+      if (params.marker) Legacy.world(ctx, cam, lc => Story.marker(lc, params.marker[0] / K, params.marker[1] / K, time));
       // balões de suspeita: no tamanho novo, em cima da cabeça
       room.guards.forEach(g => {
         const top = g.headTop();
@@ -515,6 +544,8 @@ const StealthState = (() => {
       });
       if (Debug.flags.boxes) drawDebug(ctx);
       ctx.restore();
+      // vinheta leve nos cenários da V2 (na tela, por cima do cenário em que a Ellen está)
+      if (room.scenes[cur] && room.scenes[cur].art) ctx.drawImage(Art.vignette(VIEW_W, VIEW_H), 0, TOP);
 
       Story.render(ctx, cam);
       ctx.restore();

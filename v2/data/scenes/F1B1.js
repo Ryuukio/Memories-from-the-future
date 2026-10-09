@@ -13,7 +13,9 @@ SCENES.F1B1 = {
     floor: 'cafeDiamond',
     wall: { style: 'cafe', height: 50 },
     edge: 'cafe',
-    doors: { left: [96, 128], right: [96, 128] }
+    doors: { left: [96, 128], right: [96, 128] },
+    // V2: fim de tarde, o sol baixo entrando pelas janelas do fundo: sombras para baixo (para a câmera)
+    light: { k: [0.12, 0.3], color: '#AEA2B4', contact: '#786A7E' }
   },
 
   start: { x: 20, y: 118, dir: 'right' },

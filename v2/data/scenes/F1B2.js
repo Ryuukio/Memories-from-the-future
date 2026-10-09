@@ -1,5 +1,6 @@
 // F1 B2 · Planetarium (SPEC, seção 6)
-// Sala escura de planetário, cúpula com estrelas e luzes rosa e roxas, camas redondas azuis.
+// Sala escura de planetário, cúpula com estrelas e luzes rosa e roxas, quatro camas redondas
+// (V2: como no planetário de verdade; a V1 tinha seis).
 // Vigias: deitados lado a lado numa cama redonda azul (o primeiro beijo). Loop: olham o "céu"
 // (cones para cima, ~3 s) → viram um para o outro e se beijam, de olhos fechados (sem cone,
 // ~3 s) → sentam e olham em volta (os cones varrem a sala, ~2 s) → voltam a deitar.
@@ -13,7 +14,9 @@ SCENES.F1B2 = {
     wall: { style: 'dome', height: 46, shadow: false },
     edge: 'dark',
     doors: { left: [96, 128], right: [96, 128] },
-    tint: { color: '#D8B8F2' }               // luz rosa e roxa da cúpula em todo mundo
+    tint: { color: '#D8B8F2' },              // luz rosa e roxa da cúpula em todo mundo
+    // V2: escuro, a luz vem da cúpula: só a mancha de contato embaixo de cada coisa
+    light: { k: [0.04, 0.1], color: '#8A80A8', contact: '#4A4068' }
   },
 
   start: { x: 14, y: 118, dir: 'right' },
@@ -23,9 +26,9 @@ SCENES.F1B2 = {
     { type: 'roundBed', x: 32, y: 48 },
     { type: 'roundBed', x: 160, y: 54 },                      // a cama do casal
     { type: 'roundBed', x: 294, y: 50, pillows: 'right' },
-    { type: 'roundBed', x: 52, y: 140, pillows: 'right' },
-    { type: 'roundBed', x: 172, y: 146 },
-    { type: 'roundBed', x: 286, y: 136 }
+    // V2: quatro camas, como no planetário de verdade (a V1 tinha mais duas embaixo, em (52, 140) e
+    // (286, 136), com dois casais)
+    { type: 'roundBed', x: 172, y: 146 }
   ],
 
   // os outros casais, deitados olhando o céu (um deles também se beijando). Em cada cama, quem
@@ -35,12 +38,8 @@ SCENES.F1B2 = {
     { who: 'CUSTOMER_TEAL', pose: 'lie', x: 66, y: 82 },
     { who: 'CUSTOMER_LILAC', pose: 'lie', dir: 'right', x: 328, y: 71, head: 'down', eyes: 'closed' },
     { who: 'CUSTOMER_RED', pose: 'lie', dir: 'right', x: 328, y: 84, head: 'up', eyes: 'closed' },
-    { who: 'CUSTOMER_PINK', pose: 'lie', dir: 'right', x: 86, y: 161 },
-    { who: 'CUSTOMER_BEIGE', pose: 'lie', dir: 'right', x: 86, y: 174 },
     { who: 'CUSTOMER_MINT', pose: 'lie', x: 206, y: 167 },
-    { who: 'CUSTOMER_ORANGE', pose: 'lie', x: 206, y: 180, head: 'up' },
-    { who: 'CUSTOMER_NAVY', pose: 'lie', x: 320, y: 157 },
-    { who: 'CUSTOMER_GREY', pose: 'lie', x: 320, y: 170 }
+    { who: 'CUSTOMER_ORANGE', pose: 'lie', x: 206, y: 180, head: 'up' }
   ],
 
   guards: [

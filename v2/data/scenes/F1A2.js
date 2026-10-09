@@ -16,7 +16,9 @@ SCENES.F1A2 = {
     edges: { left: 'building', right: 'hedge' },
     edgeWidth: { left: 12 },
     doors: { left: [96, 128], right: [96, 128] },
-    shadow: 'long'                            // sol da tarde: sombras esticadas
+    shadow: 'long',                           // sol da tarde: sombras esticadas
+    // V2: o sol baixo da tarde, em cima e à esquerda: sombras compridas para a direita, azuladas
+    light: { k: [0.95, 0.34], color: '#A4B2D2', contact: '#6E7898' }
   },
 
   start: { x: 26, y: 118, dir: 'right' },

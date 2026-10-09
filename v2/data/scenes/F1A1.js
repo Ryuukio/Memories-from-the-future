@@ -14,7 +14,9 @@ SCENES.F1A1 = {
   look: {
     floor: 'redWood',
     wall: { style: 'restaurant', height: 44 },
-    doors: { left: [96, 128], right: [96, 128] }
+    doors: { left: [96, 128], right: [96, 128] },
+    // V2: luz do teto, de cima: sombras curtas e quentes, logo abaixo de cada coisa
+    light: { k: [0.1, 0.16], color: '#B8A09A', contact: '#7A6060' }
   },
 
   start: { x: 28, y: 116, dir: 'right' },
