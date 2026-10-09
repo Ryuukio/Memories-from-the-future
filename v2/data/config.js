@@ -194,6 +194,24 @@ window.GAME_CONFIG = {
         "FABIO: Do I... know you?",
         "ELLEN: Not yet. You will."
       ],
+      // conversas opcionais depois do lab3, antes da máquina (Espaço perto do caderno do Dr King, do
+      // Tony ou da Heymans); cada lista de dentro é uma conversa, uma por vez, voltando à primeira no fim
+      labTalk: {
+        notes: [
+          ["NARRATOR: Dr King's old notebook. The margins are full of little questions.",
+           "ELLEN: Still teaching me, Dr King. Thank you."],
+          ["FABIO: Who's Dr King?",
+           "ELLEN: My physics teacher. He'd have liked you."]
+        ],
+        tony: [
+          ["TONY: Good luck, Ellen."],
+          ["TONY: I always believed you could do it."]
+        ],
+        heymans: [
+          ["HEYMANS: You deserve all the joy! Have a nice trip."],
+          ["HEYMANS: Look after him. And yourself."]
+        ]
+      },
       // depois que a jogadora anda até a máquina e aperta Espaço
       machine: [
         "MACHINE: DESTINATION: 16 AUGUST 2025."

@@ -85,19 +85,39 @@ const Flow = {
   // parte 3: as últimas falas e a jogadora anda com a Ellen (e o Fabio atrás) até a máquina
   labWalk() {
     const P = GAME_CONFIG.texts.prologue;
+    const talked = {};   // qual conversa de cada um (labTalk) toca na próxima vez
+    let reading = null; // quando a Ellen abriu o caderno ('open' até o 1º quadro; o close aparece enquanto ela lê)
     this.story(['LAB'], {
+      overlay: (ctx, t) => {
+        if (reading === 'open') reading = t;
+        if (reading !== null) Story.notebook(ctx, Math.min(1, (t - reading) / 0.3));
+      },
       music: 'lab',
       player: true,
       cast: { ellen1: false, ellen2: false, tony: true, heymans: true },
       setup: find => { find('machine').on = 2; },
       script: P.lab3,
       then: () => {},
-      onInteract: kind => {
-        if (kind !== 'machine') return;
-        Dialog.say(['[shake]'].concat(P.machine, ['[flash]']), {
-          onAction: (name, resume) => Story.action(name, resume),
-          onDone: () => this.startStage(1)
-        });
+      onInteract: (kind, it) => {
+        if (kind === 'machine') {
+          Dialog.say(['[shake]'].concat(P.machine, ['[flash]']), {
+            onAction: (name, resume) => Story.action(name, resume),
+            onDone: () => this.startStage(1)
+          });
+          return;
+        }
+        // o caderno do Dr King, o Tony e a Heymans: a próxima conversa da lista (não se gastam)
+        const talks = P.labTalk && P.labTalk[kind];
+        if (!talks || !talks.length) return;
+        if (it.p.who) {
+          // quem fala vira para a Ellen (e continua virado)
+          const e = StealthState.inspect().ellen, dx = e.x - it.p.x * Room.K, dy = e.y - it.p.y * Room.K;
+          it.p.dir = Math.abs(dx) >= Math.abs(dy) ? (dx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down');
+        }
+        const n = talked[kind] || 0;
+        talked[kind] = (n + 1) % talks.length;
+        if (kind === 'notes') reading = 'open';
+        Dialog.say(talks[n], { onDone: () => { reading = null; } });
       },
       onSkip: () => this.startStage(1)
     });

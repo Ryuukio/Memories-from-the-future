@@ -14,6 +14,8 @@
 //                           Nos objetos parados, big/bx/by = a imagem e a posição nova; os que animam
 //                           desenham pelo liveNew (ver stealth.js)
 //   room.steam              o vapor da comida, em coordenadas novas
+//   room.interact           { kind, p, rect, repeat }: objetos com `interact` (o baú, a máquina; com
+//                           `repeat: true` não se gastam) e NPCs com `talk: 'chave'` (sempre repetem)
 //   room.scenes[i].data     o cenário com as coordenadas novas (look, start, photoZone, stairs,
 //                           guards, movers; props e npcs ficam como no arquivo)
 //   room.scenes[i].src      o arquivo do cenário como está (coordenadas velhas)
@@ -263,7 +265,7 @@ const Room = (() => {
         if (def.liveNew) room.sorted.push({ z: g.z, x: p.x, y: p.y, w: g.w, p });
         // efeito animado por cima de tudo ou no chão (fxNew), em coordenadas novas
         if (def.fxNew) room.fx.push({ def, p, layer: def.fxLayer || 'top' });
-        if (p.interact) room.interact.push({ kind: p.interact, p, rect: kRect({ x: p.x, y: p.y, w: g.w, h: g.h }), base: g.solid && kRect(g.solid) });
+        if (p.interact) room.interact.push({ kind: p.interact, p, repeat: !!p.repeat, rect: kRect({ x: p.x, y: p.y, w: g.w, h: g.h }), base: g.solid && kRect(g.solid) });
         if (p.food && p.steam !== false) room.steam.push({ x: (p.x + 32) * K, y: (p.y + 6) * K, seed: room.steam.length * 1.7 });
       });
 
@@ -273,6 +275,8 @@ const Room = (() => {
         const f = footprint(npc.x, npc.y, npc.pose, npc.dir);
         if (f && n.solid !== false) solid(f, n.sight !== false);
         room.npcs.push(npc);
+        // talk: 'chave' = Espaço perto dele abre uma conversa (não se gasta; ver Flow.labWalk)
+        if (n.talk) room.interact.push({ kind: n.talk, p: npc, repeat: true, rect: kRect({ x: npc.x - 10, y: npc.y - 16, w: 20, h: 18 }) });
       });
 
       // NPCs que andam (garçom, pessoas, cervos, cardumes, o barco): linha do tempo como a dos

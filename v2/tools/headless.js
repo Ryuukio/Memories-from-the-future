@@ -15,12 +15,14 @@
 //   pw                 as 4 senhas: cada resposta aceita com variações (minúsculas, acentos, espaços,
 //                      pontuação) e umas erradas, digitadas de verdade
 //   jumps              cada destino do menu de teste (Ctrl+Shift+D) e depois o Ctrl+Shift+K duas vezes
+//   labtalk            as conversas do laboratório (caderno, Tony, Heymans) 3 vezes cada, e a máquina
 //   shot=CÓDIGO,t,n    abre uma cena, avança n falas e t segundos (para o print). CÓDIGO: um cenário
 //                      (F1A1...), PRO1, PRO2, LAB1, LAB2, LAB3, SHOP, STAIRS, HALL, CHEST, MACHINE,
 //                      BATTLE, SUPER, RETRY, FALL, ENDING, CARD, CARD2, TITLE, PAUSE ou DEBUG
 //                      Sprites: HEADS (roupas inteiras em 2×), HEADZ:ROUPA/direção:... (só as
 //                      cabeças em 4×), HEADSET:página (as cabeças com acessório, 15 por página)
-//                      e POSES:ROUPA (o __poses)
+//                      e POSES:ROUPA (o __poses). LABTALK:quem:vezes = a conversa do laboratório
+//                      (notes, tony ou heymans) aberta na vez `vezes`
 (() => {
   const errs = [];
   window.addEventListener('error', e => errs.push('ERR ' + e.message + ' @' + (e.filename || '').split('/').pop() + ':' + e.lineno));
@@ -40,6 +42,15 @@
     __tap('Space');
     __run(0.2);
   };
+
+  // o laboratório da parte 3 (Flow.labWalk) já depois das falas do lab3
+  const LAB_SPOTS = { notes: [110, 200], tony: [100, 140], heymans: [370, 147] };   // perto de cada um (coordenadas novas)
+  const untilFree = () => { for (let i = 0; i < 200 && Dialog.isBlocking(); i++) { __tap('Space'); __run(0.1); } };
+  function labWalk() {
+    Game.go('title', {}, { instant: true }); __run(0.1);
+    Flow.labWalk(); __run(1);
+    untilFree();
+  }
 
   function open(code) {
     for (const st of GAME_CONFIG.stages) {
@@ -75,6 +86,17 @@
       if (code === 'FALL') { choose('shoot'); for (let i = 0; i < 40 && B().hp !== 0; i++) { __tap('Space'); __run(0.25); } __run(0.5); }
     }
     else if (code === 'PAUSE') { open('F1A1'); __run(0.5); __tap('Escape'); }
+    else if (code.startsWith('LABTALK')) {
+      // o laboratório depois das falas, a Ellen perto de quem (notes, tony ou heymans) e Espaço
+      // `vezes` vezes (as conversas anteriores passam inteiras; a última fica aberta para o print)
+      const [, who, times] = code.split(':');
+      labWalk();
+      for (let k = 0; k < (+times || 1); k++) {
+        if (k) untilFree();
+        LAB_SPOTS[who] && __tp(...LAB_SPOTS[who]); __run(0.1);
+        __tap('Space'); __run(1.5);
+      }
+    }
     else if (code.startsWith('HEADZ')) {
       // só as cabeças (linhas 0 a 21) em 4×, 4 por linha: HEADZ:ROUPA/direção:...
       const list = code.split(':').slice(1);
@@ -138,6 +160,41 @@
       Flow.newGame();
       const r1 = __drive(200), r2 = __drive(200);
       return { t: r2.t, end: Game.name, caught: r2.caught, log: r1.log.concat(r2.log) };
+    },
+
+    labtalk() {
+      // as conversas do laboratório: cada uma 3 vezes (tem que voltar à primeira), quem fala vira
+      // para a Ellen, a Ellen do passado escondida não conta, e depois a máquina leva à fase 1
+      const log = [], said = [];
+      const say = Dialog.say.bind(Dialog);
+      Dialog.say = (lines, o) => { said.push([].concat(lines)[0]); return say(lines, o); };
+      labWalk();
+      const s = StealthState.inspect(), npc = id => s.room.npcs.find(n => n.id === id);
+      ['notes', 'tony', 'heymans'].forEach(who => {
+        for (let k = 0; k < 3; k++) {
+          __tp(...LAB_SPOTS[who]); __run(0.1);
+          said.length = 0;
+          __tap('Space'); __run(0.5);
+          log.push(who + ' ' + k + ': ' + (said[0] || '(nada)') + (npc(who) ? ' [vira: ' + npc(who).dir + ']' : ''));
+          untilFree();
+        }
+      });
+      log.push('escondidas: ' + s.room.npcs.filter(n => n.hidden).map(n => n.id).join(','));
+      // a máquina, depois das conversas
+      __tp(240, 165); __run(0.1);
+      const it = s.room.interact.find(i => i.kind === 'machine');
+      const r = it.rect; __tp(r.x + r.w / 2, r.y + r.h + 8); __run(0.1);
+      __tap('Space');
+      for (let i = 0; i < 60 && Game.name === 'stealth' && StealthState.inspect().params.kind === 'story'; i++) { __tap('Space'); __run(0.3); }
+      __run(4);
+      log.push('máquina: ' + Game.name + (Game.name === 'stealth' ? ' ' + StealthState.inspect().params.codes.join('+') : ''));
+      // o Ctrl+Shift+K depois de conversar: vai para a fase 1
+      labWalk(); __tp(...LAB_SPOTS.tony); __run(0.1); __tap('Space'); __run(0.5); untilFree();
+      const skips = [];
+      for (let k = 0; k < 3 && Game.name === 'stealth' && StealthState.inspect().params.kind === 'story'; k++) { __tap('KeyK', { ctrlKey: true, shiftKey: true, key: 'K' }); __run(4); skips.push(Game.name); }
+      log.push('Ctrl+Shift+K: ' + skips.join(' > ') + ' ' + (Game.name === 'stealth' ? StealthState.inspect().params.codes.join('+') : ''));
+      Dialog.say = say;
+      return { log };
     },
 
     balance() {

@@ -425,7 +425,8 @@ window.__route = (codes, si, period, pts, o = {}) => {
     if (s.phase !== 'play') { release(); return step(0.1); }
     const k = s.params.kind;
     if (k === 'room') return room(s);
-    const it = s.room.interact.find(i => !i.p.used);
+    // (as conversas do laboratório, que se repetem, ficam de fora: vai direto para a máquina)
+    const it = s.room.interact.find(i => !i.p.used && !i.repeat && !i.p.hidden);
     if ((k === 'chest' || (k === 'story' && s.params.onInteract)) && it) {
       // a conta do nearby() do stealth, com uma folga
       const r = it.rect, near = (x, y) => x > r.x - 7.5 && x < r.x + r.w + 7.5 && y - 3.75 > r.y - 5 && y - 3.75 < r.y + r.h + 12.5;

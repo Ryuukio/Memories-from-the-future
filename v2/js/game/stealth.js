@@ -14,9 +14,12 @@
 //   hud      false = sem o HUD; title/date = legenda do HUD (livraria: "Here and now" e a data de hoje)
 //   script   falas ao entrar; [ação] chama Story.action (efeitos, atores aparecendo, poses) ou
 //            actions[nome](resume) do Flow; then() quando acabam
-//   onInteract(kind)  ao apertar Espaço perto de um objeto com `interact` (a máquina do tempo)
+//   onInteract(kind, it)  ao apertar Espaço perto de um objeto com `interact` (a máquina do tempo)
+//                     ou de um NPC com `talk`; com repeat (o objeto com `repeat: true` e os NPCs
+//                     com `talk`), a interação não se gasta (as conversas do laboratório)
 //   onExit()          ao chegar na saída (look.exitZone ou a passagem da direita: a escada)
 //   marker: [x, y]    seta piscando em cima de um ponto (a escada, depois da batalha)
+//   overlay(ctx, t)   desenha por cima da cena, sob a caixa de fala (o caderno do Dr King em close)
 //   music             música da cena (null = silêncio; sem a chave, continua a que está tocando).
 //                     Nas salas, no corredor e no baú, toca a música da fase.
 //
@@ -263,10 +266,13 @@ const StealthState = (() => {
   }
 
   // ---------- objetos interativos (o baú) ----------
+  // o que está perto da Ellen (sem os gastos e os escondidos); com mais de um, o mais próximo
   function nearby() {
     const fx = ellen.x, fy = ellen.y - 3.75;
-    return room.interact.find(it => !it.p.used &&
+    const near = room.interact.filter(it => !it.p.used && !it.p.hidden &&
       fx > it.rect.x - 10 && fx < it.rect.x + it.rect.w + 10 && fy > it.rect.y - 7.5 && fy < it.rect.y + it.rect.h + 15);
+    const dist = it => Math.hypot(fx - (it.rect.x + it.rect.w / 2), fy - (it.rect.y + it.rect.h / 2));
+    return near.sort((a, b) => dist(a) - dist(b))[0];
   }
 
   function interact(it) {
@@ -277,7 +283,7 @@ const StealthState = (() => {
       fabio.moving = false;
       Chest.open(params.stage, it.p, () => Flow.chestDone(params.stage));
     } else if (params.onInteract) {
-      it.p.used = true;
+      if (!it.repeat) it.p.used = true;   // repeat: as conversas do laboratório não se gastam
       ellen.moving = false;
       fabio.moving = false;
       params.onInteract(it.kind, it);
@@ -510,6 +516,7 @@ const StealthState = (() => {
       ctx.drawImage(Art.vignette(VIEW_W, VIEW_H), 0, TOP);
 
       Story.render(ctx, cam);
+      if (params.overlay) params.overlay(ctx, time);
       ctx.restore();
       if (phase === 'chest') Chest.render(ctx);
       if (params.hud) {
