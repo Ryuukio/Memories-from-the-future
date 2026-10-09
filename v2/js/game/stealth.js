@@ -496,7 +496,10 @@ const StealthState = (() => {
         if (!n.hidden && visible(n.x - 24, 48)) list.push({ z: Math.round(n.y * K) + 0.5, draw: () => Chars.draw(ctx, Room.npcSprite(n, time), n.x * K, n.y * K, { chair: n.chair, dir: n.dir, pose: n.pose, shadow: shadowAt(n.x * K), wade: n.wade, gear: n.gear, look: n.dir, t: time }) });
       });
       room.guards.concat(room.movers).forEach(g => {
-        if (g.def.prop) list.push({ z: g.z() + 0.5, old: lc => g.drawProp(lc, old, K) });
+        // desenhado por um objeto do Scenery: no cenário da V2, pelo liveNew (coordenadas novas)
+        const pd = g.def.prop && Scenery.props[g.def.prop];
+        if (pd && pd.liveNew && room.scenes[g.scene] && room.scenes[g.scene].art) list.push({ z: g.z() + 0.5, draw: () => pd.liveNew(ctx, g, world) });
+        else if (g.def.prop) list.push({ z: g.z() + 0.5, old: lc => g.drawProp(lc, old, K) });
         else list.push({ z: g.z() + 0.5, draw: () => g.draw(ctx, shadowAt(g.x)) });
       });
       const fFrame = fabio.moving ? Math.floor(fabio.dist / STRIDE) % 4 : -1;

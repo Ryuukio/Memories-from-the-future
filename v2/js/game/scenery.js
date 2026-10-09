@@ -13,7 +13,8 @@
 //   live(ctx, p, world, img)   opcional: desenha a cada quadro, no lugar da imagem pronta (baú, porta)
 //   liveNew(ctx, p, world)     V2: como o live, mas já no desenho novo, em coordenadas novas (fora da
 //                              camada velha; p continua em coordenadas velhas). Ex.: o Big Jimmy Junk,
-//                              a porta do corredor e o baú
+//                              a porta do corredor e o baú. Para quem anda desenhado por um objeto
+//                              (prop: o barco, os cervos), p é o próprio vigia, já em coordenadas novas
 //   fx(ctx, p, world)          opcional: animação por cima (fxLayer 'top') ou no chão ('ground')
 //   art(p)           V2: o desenho novo, usado nos cenários da V2 (ver art.js e room.js): devolve
 //                    { spr, dx, dy, shadow, H, base, contact }: spr = Art.surface com o desenho no

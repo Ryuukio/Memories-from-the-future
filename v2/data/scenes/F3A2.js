@@ -11,6 +11,8 @@ SCENES.F3A2 = {
     path: [100, 132],
     wall: { style: 'snowHills', height: 34, shadow: false },
     edge: 'snowTrees',
+    // V2: manhã de sol no inverno: sombras azuis na neve, para a direita
+    light: { k: [0.55, 0.3], color: '#A6B6E2', contact: '#7686B8' },
     doors: { left: [96, 128], right: [96, 128] },
     slow: [[0, 34, 384, 64, 0.65], [0, 134, 384, 58, 0.65]]
   },

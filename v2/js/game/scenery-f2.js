@@ -240,6 +240,7 @@
       S.put(x, y, pick(CLOUDB, t, x, y));
     }
   }
+  kit.cumulus = cumulus;
 
   // céu de verão, a nuvem grande, morros ao longe, o morro de mata com os postes e o mar no horizonte
   const SKYB = T(['#2154BC', '#285EC4', '#3068CC', '#3A76D4', '#4684DA', '#5492DE', '#64A0E2', '#78AEE6', '#90BEE8', '#AACCEA']);

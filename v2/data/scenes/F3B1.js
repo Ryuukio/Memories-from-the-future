@@ -11,6 +11,8 @@ SCENES.F3B1 = {
     slope: [126, 262],
     wall: { style: 'skiMountains', height: 30, shadow: false },
     edge: 'snowTrees',
+    // V2: tarde de céu limpo na montanha: sombras azuis, um pouco compridas para a direita
+    light: { k: [0.45, 0.28], color: '#A6B6E2', contact: '#7686B8' },
     doors: { left: [96, 128], right: [96, 128] },
     slow: [[0, 30, 122, 162, 0.7], [266, 30, 118, 162, 0.7]]
   },

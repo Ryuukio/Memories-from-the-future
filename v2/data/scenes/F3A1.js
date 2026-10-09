@@ -17,6 +17,8 @@ SCENES.F3A1 = {
     floor: 'aptWood',
     wall: { style: 'kitchen', height: 52 },
     edge: 'aptWall',
+    // V2: de dia, dentro de casa: sombras curtas e quentes
+    light: { k: [0.06, 0.14], color: '#B4A8A0', contact: '#7E6E66' },
     doors: { left: [96, 128], right: [96, 128] },
     split: 192
   },

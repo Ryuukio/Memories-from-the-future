@@ -9,22 +9,28 @@ window.SCENES = window.SCENES || {};
 
 SCENES.F3B2 = {
   look: {
-    floor: 'festival',
-    wall: { style: 'festivalSky', height: 30, shadow: false },
+    floor: 'bbqPark',                        // V2: piso e céu próprios (os da V1 eram 'festival' e
+    wall: { style: 'bbqSky', height: 30, shadow: false },   // 'festivalSky', que o F4 A1 também usa)
     edge: 'hedge',
-    doors: { left: [96, 128], right: [96, 128] }
+    doors: { left: [96, 128], right: [96, 128] },
+    // V2: à noite, como na foto: tudo azulado; a churrasqueira em brasa e os dois postes clareiam
+    tint: { color: '#7078B8', lights: [[214, 44, 64, '#5A3410'], [71, 30, 60, '#4A3C1C'], [331, 30, 60, '#4A3C1C']] },
+    light: { k: [0.06, 0.12], color: '#9098BC', contact: '#5A6080' }
   },
 
   start: { x: 14, y: 112, dir: 'right' },
 
   props: [
+    // V2: os bancos da mesa (só desenho, no chão, embaixo de quem senta)
+    { type: 'picnicBench', x: 185, y: 84, w: 10, h: 80 },
+    { type: 'picnicBench', x: 235, y: 84, w: 10, h: 80 },
     { type: 'grill', x: 196, y: 30 },
     { type: 'longTableV', x: 200, y: 70, h: 102 },
     { type: 'cooler', x: 254, y: 52 },
-    { type: 'tree', x: 40, y: 34 },
-    { type: 'tree', x: 300, y: 130 },
-    { type: 'bush', x: 110, y: 160 },
-    { type: 'bush', x: 330, y: 40 }
+    { type: 'tree', x: 40, y: 34, night: true },
+    { type: 'tree', x: 300, y: 130, night: true },
+    { type: 'bush', x: 110, y: 160, night: true },
+    { type: 'bush', x: 330, y: 40, night: true }
   ],
 
   // os cinco amigos sentados à mesa (três de cada lado; a Ellen fica no último lugar da esquerda)

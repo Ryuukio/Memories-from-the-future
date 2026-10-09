@@ -13,6 +13,8 @@ SCENES.F3C2 = {
     pond: [30, 118],
     wall: { style: 'naraBank', height: 30, shadow: false },
     edge: 'hedge',
+    // V2: dia de primavera meio enevoado: sombras médias para a direita
+    light: { k: [0.4, 0.25], color: '#B0B2CC', contact: '#7A7C9A' },
     doors: { left: [136, 186], right: [136, 186] }
   },
 

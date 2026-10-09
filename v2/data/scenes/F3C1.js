@@ -10,6 +10,8 @@ SCENES.F3C1 = {
     floor: 'lightDirt',
     wall: { style: 'himeji', height: 80, shadow: false },
     edge: 'hedge',
+    // V2: manhã de primavera: sombras médias para a direita
+    light: { k: [0.42, 0.26], color: '#B0B2CC', contact: '#7A7C9A' },
     // a passagem da direita fica embaixo, alinhada com o caminho de Nara (a lagoa ocupa o alto do F3 C2)
     doors: { left: [96, 128], right: [136, 186] }
   },
