@@ -1,8 +1,9 @@
 // Fonte bitmap 6×9 da V2 (FONT, em data/sprites.js). Maiúsculas e números têm 9 linhas; minúsculas,
 // até 12 (por causa das descendentes). Cada cor vira um atlas tingido, guardado em cache.
 // Uso: Gfx.text(str, x, y, cor, { shadow, italic, align: 'left'|'center'|'right', scale, ctx })
-// A fonte 5×7 da V1 (FONT_V1) fica para a arte velha que ainda não foi refeita (letreiros dos
-// cenários): Gfx.font('v1') troca a fonte e devolve a anterior (o Room.build e o legacy.js usam).
+// A fonte 5×7 da V1 (FONT_V1) ficou para as medidas: o Room.build mede os letreiros (o size dos
+// objetos) com ela, para o tamanho continuar o da V1, e a sala de teste (legacy.js) ainda escreve com
+// ela. Gfx.font('v1') troca a fonte e devolve a anterior.
 (() => {
   const GAP = 1;
   const ALIASES = { '…': '...', '“': '"', '”': '"', '‘': "'", '’': "'", '–': '-' };

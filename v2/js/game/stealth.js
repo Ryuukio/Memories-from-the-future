@@ -21,9 +21,8 @@
 //                     Nas salas, no corredor e no baú, toca a música da fase.
 //
 // V2: coordenadas novas (o mundo da V1 × 1,25; ver room.js). Os tamanhos daqui (pés, distância do
-// Fabio, passos) são os da V1 × 1,25, para o jogo ficar igual. Os personagens são os da V2 (26×48);
-// a arte que ainda é da V1 (cenários) é desenhada em coordenadas velhas (÷ 1,25) numa camada
-// ampliada na tela (Legacy.world), ou já vem ampliada (os objetos parados).
+// Fabio, passos) são os da V1 × 1,25, para o jogo ficar igual. Tudo é desenhado no tamanho novo: os
+// personagens (26×48), os objetos (a imagem pronta ou o liveNew) e os efeitos (fxNew).
 const StealthState = (() => {
   const TOP = Hud.H, VIEW_W = Display.W, VIEW_H = Display.H - Hud.H, K = Room.K;
   const FOLLOW = 22.5;   // distância do Fabio atrás da Ellen, medida pelo caminho que ela fez
@@ -286,19 +285,11 @@ const StealthState = (() => {
   }
 
   // ---------- desenho ----------
-  // vapor da comida. old: o da V1 (coordenadas velhas, dentro da camada); senão, o dos cenários da
-  // V2 (isNew: coordenadas novas, fiapos um pouco maiores e com uma volta)
-  function drawSteam(ctx, old) {
+  // vapor da comida: fiapos subindo e fazendo uma volta (coordenadas novas)
+  function drawSteam(ctx) {
     room.steam.forEach(s => {
-      if (!s.isNew !== !!old) return;
       for (let k = 0; k < 3; k++) {
         const ph = (time * 0.7 + k / 3 + s.seed) % 1;
-        if (old) {
-          const x = s.x - 3 + k * 3 + Math.round(Math.sin((time + k) * 2.5));
-          ctx.globalAlpha = 0.75 * (1 - ph);
-          Gfx.rect(x, s.y - 2 - ph * 14, 1, 2, '#F2ECE0');
-          continue;
-        }
         const x = Math.round(s.x - 4 + k * 4 + Math.sin((time + k) * 2.5 + ph * 3) * 1.5), y = Math.round(s.y - 3 - ph * 18);
         ctx.globalAlpha = 0.6 * (1 - ph);
         Gfx.rect(x, y, 1, 3, '#FFFFFF');
@@ -308,13 +299,12 @@ const StealthState = (() => {
     ctx.globalAlpha = 1;
   }
 
-  // Luz do ambiente (noite, planetário): multiplica a parte visível do cenário pela cor e
-  // acende as luzes (lanterna, poste) com pontilhado, em volta delas. Nos cenários da V2, as duas
-  // camadas já vêm prontas do Room.build (s.amb: o escuro, que multiplica, e o brilho, somado).
+  // Luz do ambiente (noite, planetário): multiplica a parte visível do cenário pela cor e acende as
+  // luzes (lanterna, poste) em volta delas. As duas camadas já vêm prontas do Room.build (s.amb: o
+  // escuro, que multiplica, e o brilho, somado).
   function drawTint(ctx, cam) {
     room.scenes.forEach(s => {
-      const tint = s.data.look.tint;
-      if (!tint) return;
+      if (!s.amb) return;
       const x0 = Math.max(s.ox, cam), x1 = Math.min(s.ox + Room.SW, cam + VIEW_W);
       if (x1 <= x0) return;
       ctx.save();
@@ -322,19 +312,9 @@ const StealthState = (() => {
       ctx.rect(x0, 0, x1 - x0, VIEW_H);
       ctx.clip();
       ctx.globalCompositeOperation = 'multiply';
-      if (s.amb) {
-        ctx.drawImage(s.amb.dark, s.ox, 0);
-        ctx.globalCompositeOperation = 'lighter';
-        ctx.drawImage(s.amb.glow, s.ox, 0);
-        ctx.restore();
-        return;
-      }
-      Gfx.rect(x0, 0, x1 - x0, VIEW_H, tint.color);
+      ctx.drawImage(s.amb.dark, s.ox, 0);
       ctx.globalCompositeOperation = 'lighter';
-      (tint.lights || []).forEach(([lx, ly, r, color]) => {
-        const img = Lights.get(r, color || '#3A2A10');
-        ctx.drawImage(img, Math.round(s.ox + lx - r), Math.round(ly - r));
-      });
+      ctx.drawImage(s.amb.glow, s.ox, 0);
       ctx.restore();
     });
   }
@@ -346,11 +326,9 @@ const StealthState = (() => {
     return !!(s.cfg.dates || s.cfg.lines) && ellen.x - s.ox >= (s.data.look.split || Room.SW / 2);
   }
 
-  // sombra de quem está em x: nos cenários da V2, a luz do cenário (look.light: o desenho projetado
-  // no chão); nos outros, o look.shadow da V1
+  // sombra de quem está em x: a luz do cenário (look.light: o desenho projetado no chão)
   function shadowAt(x) {
-    const s = room.scenes[sceneAt(x)], look = s.data.look;
-    return s.art && look.light ? look.light : look.shadow;
+    return room.scenes[sceneAt(x)].data.look.light;
   }
 
   function drawDebug(ctx) {
@@ -472,34 +450,27 @@ const StealthState = (() => {
       ctx.save();
       ctx.translate(-cam, TOP);
       // A ordem segue a base em coordenadas novas: a dos objetos × 1,25 e a dos personagens + 0,5 (no
-      // empate, o personagem fica na frente do objeto, como na V1). Os personagens são desenhados no
-      // tamanho novo; os objetos parados já vêm ampliados (big); o que ainda é desenho animado da V1
-      // (live dos objetos, os bichos e o barco de quem anda, os efeitos) vai para a camada velha
-      // (legacy.js), em coordenadas velhas: cada trecho seguido de desenhos velhos numa camada só.
-      const old = { t: time, ellen: { x: ellen.x / K, y: ellen.y / K } };
+      // empate, o personagem fica na frente do objeto, como na V1). Os objetos parados já vêm prontos
+      // (big); os que animam desenham pelo liveNew; os efeitos, pelo fxNew. Os objetos e os efeitos
+      // guardam a posição velha (x, w), usada só para saber se estão na tela.
       const cam0 = cam / K, view0 = VIEW_W / K;
       const visible = (x, w) => x + w >= cam0 - 16 && x <= cam0 + view0 + 16;
-      // efeitos no chão: os da V2 (fxNew) direto; os da V1 na camada velha
-      const ground = room.fx.filter(f => f.layer === 'ground' && visible(f.p.x, 64));
-      ground.forEach(f => { if (f.isNew) f.def.fxNew(ctx, f.p, world); });
-      if (ground.some(f => !f.isNew)) Legacy.world(ctx, cam, lc => ground.forEach(f => { if (!f.isNew) f.def.fx(lc, f.p, old); }));
+      room.fx.forEach(f => { if (f.layer === 'ground' && visible(f.p.x, 64)) f.def.fxNew(ctx, f.p, world); });
 
       const list = [];
       room.sorted.forEach(o => {
         if (!visible(o.x, o.w) || (o.p && o.p.hidden)) return;
         const def = o.p && Scenery.props[o.p.type];
         if (def && def.liveNew) list.push({ z: o.z * K, draw: () => def.liveNew(ctx, o.p, world) });
-        else if (def && def.live) list.push({ z: o.z * K, old: lc => def.live(lc, o.p, old, o.img) });
         else list.push({ z: o.z * K, draw: () => ctx.drawImage(o.big, o.bx, o.by) });
       });
       room.npcs.forEach(n => {
         if (!n.hidden && visible(n.x - 24, 48)) list.push({ z: Math.round(n.y * K) + 0.5, draw: () => Chars.draw(ctx, Room.npcSprite(n, time), n.x * K, n.y * K, { chair: n.chair, dir: n.dir, pose: n.pose, shadow: shadowAt(n.x * K), wade: n.wade, gear: n.gear, look: n.dir, t: time }) });
       });
       room.guards.concat(room.movers).forEach(g => {
-        // desenhado por um objeto do Scenery: no cenário da V2, pelo liveNew (coordenadas novas)
+        // desenhado por um objeto do Scenery (o barco, os cervos): pelo liveNew, com o próprio vigia
         const pd = g.def.prop && Scenery.props[g.def.prop];
-        if (pd && pd.liveNew && room.scenes[g.scene] && room.scenes[g.scene].art) list.push({ z: g.z() + 0.5, draw: () => pd.liveNew(ctx, g, world) });
-        else if (g.def.prop) list.push({ z: g.z() + 0.5, old: lc => g.drawProp(lc, old, K) });
+        if (pd) list.push({ z: g.z() + 0.5, draw: () => pd.liveNew(ctx, g, world) });
         else list.push({ z: g.z() + 0.5, draw: () => g.draw(ctx, shadowAt(g.x)) });
       });
       const fFrame = fabio.moving ? Math.floor(fabio.dist / STRIDE) % 4 : -1;
@@ -509,26 +480,14 @@ const StealthState = (() => {
         list.push({ z: ellen.y + 0.5, draw: () => Chars.draw(ctx, Chars.sprite('ELLEN_NOW', { dir: ellen.dir, frame: eFrame }), ellen.x, ellen.y, { shadow: shadowAt(ellen.x) }) });
       }
       list.sort((p, q) => p.z - q.z);
-      for (let i = 0; i < list.length;) {
-        if (!list[i].old) { list[i++].draw(); continue; }
-        const run = [];
-        while (i < list.length && list[i].old) run.push(list[i++].old);
-        Legacy.world(ctx, cam, lc => run.forEach(f => f(lc)));
-      }
+      list.forEach(it => it.draw());
 
-      const top = room.fx.filter(f => f.layer === 'top' && visible(f.p.x, 64));
-      if (room.steam.some(s => !s.isNew) || top.some(f => !f.isNew)) {
-        Legacy.world(ctx, cam, lc => {
-          drawSteam(lc, true);
-          top.forEach(f => { if (!f.isNew) f.def.fx(lc, f.p, old); });
-        });
-      }
-      drawSteam(ctx, false);
-      top.forEach(f => { if (f.isNew) f.def.fxNew(ctx, f.p, world); });
+      drawSteam(ctx);
+      room.fx.forEach(f => { if (f.layer === 'top' && visible(f.p.x, 64)) f.def.fxNew(ctx, f.p, world); });
       drawTint(ctx, cam);
-      // cenários da V2: a camada de luz (raios de sol) e a animação do cenário (poeira, borboletas)
+      // a camada de luz (raios de sol) e a animação do cenário (poeira, borboletas)
       room.scenes.forEach(s => {
-        if (!s.art || s.ox >= cam + VIEW_W || s.ox + Room.SW <= cam) return;
+        if (s.ox >= cam + VIEW_W || s.ox + Room.SW <= cam) return;
         if (s.post) ctx.drawImage(s.post, s.ox, 0);
         if (s.fx) s.fx(ctx, s.ox, world, s.data.look);
       });
@@ -539,7 +498,7 @@ const StealthState = (() => {
         const at = g.def.heartAt || [0, -34];
         Guard.hearts(ctx, g.x + at[0] * 1.6, g.y + at[1] * 1.5, time);
       });
-      if (params.marker) Legacy.world(ctx, cam, lc => Story.marker(lc, params.marker[0] / K, params.marker[1] / K, time));
+      if (params.marker) Story.marker(ctx, params.marker[0], params.marker[1], time);
       // balões de suspeita: no tamanho novo, em cima da cabeça
       room.guards.forEach(g => {
         const top = g.headTop();
@@ -547,8 +506,8 @@ const StealthState = (() => {
       });
       if (Debug.flags.boxes) drawDebug(ctx);
       ctx.restore();
-      // vinheta leve nos cenários da V2 (na tela, por cima do cenário em que a Ellen está)
-      if (room.scenes[cur] && room.scenes[cur].art) ctx.drawImage(Art.vignette(VIEW_W, VIEW_H), 0, TOP);
+      // vinheta leve (na tela, por cima do cenário)
+      ctx.drawImage(Art.vignette(VIEW_W, VIEW_H), 0, TOP);
 
       Story.render(ctx, cam);
       ctx.restore();
@@ -596,26 +555,6 @@ const StealthState = (() => {
       } else {
         exitRoom();
       }
-    }
-  };
-})();
-
-// Luzes (poste, lanterna): círculos em níveis concêntricos com pontilhado Bayer, somados
-// por cima da luz do ambiente (Apêndice E.1). Guardados em cache por raio e cor.
-const Lights = (() => {
-  const cache = {};
-  return {
-    get(r, color) {
-      const key = r + color;
-      if (!cache[key]) {
-        const cv = Gfx.canvas(r * 2, r * 2);
-        Scenery.glow(cv.cx, 0, 0, r * 2, r * 2, color, (i, j) => {
-          const dd = Math.hypot(i + 0.5 - r, (j + 0.5 - r) * 1.5) / r;
-          return dd >= 1 ? 0 : Math.min(1, Math.ceil((1 - dd) * 4) / 4 * 1.1);
-        });
-        cache[key] = cv;
-      }
-      return cache[key];
     }
   };
 })();

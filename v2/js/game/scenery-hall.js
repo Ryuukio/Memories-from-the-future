@@ -12,8 +12,8 @@
   props.rug = { layer: 'back', size: p => [p.w || 72, p.h || 36] };
 
   // porta no fim do corredor (locked: true = a porta por onde a Ellen entrou) e o baú (interact)
-  props.hallDoor = { size: () => [8, 40], base: 0, draw() {} };
-  props.chest = { size: () => [28, 30], solid: () => [3, 14, 22, 13], base: 27, draw() {} };
+  props.hallDoor = { size: () => [8, 40], base: 0 };
+  props.chest = { size: () => [28, 30], solid: () => [3, 14, 22, 13], base: 27 };
 
   // ======================================================================
   //  V2 (art.js): o corredor e a salinha do baú em coordenadas novas. O salão "entre as memórias":

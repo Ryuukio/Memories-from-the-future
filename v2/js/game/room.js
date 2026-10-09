@@ -8,15 +8,15 @@
 // V2: os arquivos de data/scenes/ continuam nas coordenadas da V1 (cenário de 384 × 192). A sala é
 // montada como na V1, em coordenadas velhas, e tudo o que o jogo usa (colisão, visão, saída, vigias e
 // os loops deles, o começo, as zonas do look) é ampliado 1,25× (Legacy.K) e arredondado. Assim o
-// balanceamento da V1 se mantém. O desenho que ainda é da V1 (o fundo, os objetos, os NPCs parados,
-// os efeitos) fica em coordenadas velhas e é ampliado na tela (legacy.js):
-//   room.bg                 o fundo pintado, já ampliado (480 × 240 por cenário)
-//   room.sorted, fx, steam, npcs   em coordenadas velhas (só desenho; z é a base velha). Nos objetos
-//                           parados, big/bx/by = a imagem já ampliada e a posição nova
-//   (os personagens e o que tem liveNew já são desenhados no tamanho novo; ver stealth.js)
+// balanceamento da V1 se mantém. O desenho é todo da V2, em coordenadas novas:
+//   room.bg                 o fundo pintado (480 × 240 por cenário)
+//   room.sorted, fx, npcs   em coordenadas velhas (p = o objeto como no arquivo; z é a base velha).
+//                           Nos objetos parados, big/bx/by = a imagem e a posição nova; os que animam
+//                           desenham pelo liveNew (ver stealth.js)
+//   room.steam              o vapor da comida, em coordenadas novas
 //   room.scenes[i].data     o cenário com as coordenadas novas (look, start, photoZone, stairs,
 //                           guards, movers; props e npcs ficam como no arquivo)
-//   room.scenes[i].src      o arquivo do cenário como está (coordenadas velhas, para os pintores)
+//   room.scenes[i].src      o arquivo do cenário como está (coordenadas velhas)
 //   room.scenes[i].ox / ox0 começo do cenário na sala, em coordenadas novas / velhas
 //
 // Além do que está em scenery.js, o `look` de um cenário pode ter:
@@ -29,12 +29,11 @@
 //   shadow: 'long'     sombras esticadas para baixo e para a direita (parque à tarde)
 //   coneLum: 0.4       V2: o cone vê o chão mais escuro (vermelho mais fundo), para o chão claro e frio
 //
-// Cenário já refeito na V2 (o estilo da parede existe em Art.walls; ver art.js): o fundo é pintado
+// Todo cenário é da V2 (o estilo da parede existe em Art.walls; ver art.js): o fundo é pintado
 // direto em coordenadas novas pelos pintores do Art, os objetos com `art` vêm no tamanho novo e
 // projetam a sombra no chão (look.light), os efeitos com fxNew e a luz do ambiente (look.tint)
-// também são novos. O fundo pronto de cada cenário fica em cache pelo código. Objeto sem `art`
-// num cenário novo continua com o desenho da V1 ampliado.
-//   room.scenes[i].art     true = cenário da V2
+// também são novos. O fundo pronto de cada cenário fica em cache pelo código.
+//   room.scenes[i].art     true (cenário da V2; sem pintor da V2, o Room.build dá erro)
 //   room.scenes[i].amb     luz do ambiente pronta ({ dark, glow }, 480 × 240), se tiver look.tint
 //   room.scenes[i].post    camada de luz por cima de tudo (Art.posts: raios de sol), se tiver
 //   room.scenes[i].fx      animação do cenário inteiro (Art.scenefx: poeira na luz), se tiver
@@ -138,7 +137,7 @@ const Room = (() => {
 
   // Fundo de um cenário da V2 (480 × 240): piso, parede, bordas, os objetos do fundo e as sombras
   // dos objetos parados (casters: [{ a, x, y, base }], em px novos do cenário)
-  function paintNew(s, backs, casters, olds) {
+  function paintNew(s, backs, casters) {
     if (bgCache[s.code]) return bgCache[s.code];
     const look = s.data.look, S = Art.surface(SW, SH), wallH = look.wall.height;
     const floor = Art.floors[look.floor];
@@ -163,10 +162,7 @@ const Room = (() => {
       });
       Art.applyShadows(S, mask, look.light, wallH);
     }
-    const cv = S.canvas();
-    // objetos do fundo ainda sem desenho novo: o da V1, ampliado
-    olds.forEach(o => { const u = Legacy.upAt(o.img, o.x, o.y); cv.cx.drawImage(u.img, u.x, u.y); });
-    return (bgCache[s.code] = cv);
+    return (bgCache[s.code] = S.canvas());
   }
 
   // Pinta antes os fundos da V2 (a primeira montagem leva uns 0,2 s por sala; depois fica em cache):
@@ -192,7 +188,8 @@ const Room = (() => {
     return out;
   }
 
-  // a montagem desenha a arte velha (fundo e objetos, com os letreiros na fonte da V1)
+  // a montagem mede os letreiros (o size dos objetos) com a fonte da V1, como na V1: o tamanho, a
+  // colisão e a visão continuam os mesmos (o desenho novo usa a fonte nova; ver Art.text)
   function build(codes) {
     const prevFont = Gfx.font('v1');
     try {
@@ -208,7 +205,6 @@ const Room = (() => {
       if (!src) throw new Error('Cenário sem arquivo em data/scenes: ' + code);
       return { code, i, ox: i * SW, ox0: i * SW0, data: scaleScene(code), src, cfg: sceneConfig(code) };
     });
-    const bg0 = Gfx.canvas(scenes.length * SW0, SH0);
     const room = {
       scenes, w: scenes.length * SW, h: SH, bg: null, solids: [], sight: [], sorted: [], fx: [], npcs: [], movers: [], guards: [],
       steam: [], interact: [], exit: null
@@ -224,9 +220,9 @@ const Room = (() => {
     scenes.forEach((s, idx) => {
       const { src, ox0: ox } = s, look = src.look, wallH = look.wall.height;
       const [bx0, bx1] = look.bounds || [0, SW0];
-      s.art = isNew(look);
-      const backs = [], casters = [], olds = [];
-      if (!s.art) Scenery.paintBase(bg0.cx, ox, look);
+      if (!isNew(look)) throw new Error('Cenário sem pintor da V2 (Art.walls): ' + s.code);
+      s.art = true;
+      const backs = [], casters = [];
 
       // parede do fundo e paredes laterais, com as passagens (edgeWidth: parede mais grossa, ex.: a
       // fachada do restaurante no parque)
@@ -255,37 +251,20 @@ const Room = (() => {
         const g = Scenery.geometry(p), def = g.def;
         if (g.solid) solid(g.solid, false);
         if (g.sight) room.sight.push(kRect(g.sight));
-        if (s.art && def.art && !def.hidden) {
-          // V2: desenho novo, em px novos do cenário (lx, ly) e da sala (s.ox + lx)
+        if (def.art && !def.hidden) {
+          // o desenho, em px novos do cenário (lx, ly) e da sala (s.ox + lx)
           const a = propArt(def, Object.assign({}, p, { x: p0.x }));
           const lx = k(p0.x) + a.dx, ly = k(p.y) + a.dy, base = a.base !== undefined ? ly + a.base : k(g.z);
           if (def.layer === 'back') backs.push({ a, x: lx, y: ly });
-          else if (!def.live && !def.liveNew) room.sorted.push({ z: g.z, img: a.img, big: a.img, bx: s.ox + lx, by: ly, x: p.x, y: p.y, w: g.w, p });
+          else if (!def.liveNew) room.sorted.push({ z: g.z, big: a.img, bx: s.ox + lx, by: ly, x: p.x, y: p.y, w: g.w, p });
           if (a.shadow || a.contact) casters.push({ a, x: lx, y: ly, base });
         }
-        if (s.art && def.liveNew) room.sorted.push({ z: g.z, x: p.x, y: p.y, w: g.w, p });
-        if (!(s.art && (def.art || def.liveNew))) {
-          const img = Scenery.render(p);
-          if (def.layer === 'back') {
-            if (s.art) olds.push({ img, x: p0.x, y: p.y });
-            else bg0.cx.drawImage(img, p.x, p.y);
-          } else if (!def.hidden) {
-            const o = { z: g.z, img, x: p.x, y: p.y, w: g.w, p };
-            // o que não anima vai para a tela já ampliado (big), no meio dos personagens novos
-            if (!def.live && !def.liveNew) { const u = Legacy.upAt(img, p.x, p.y); o.big = u.img; o.bx = u.x; o.by = u.y; }
-            room.sorted.push(o);
-          }
-        }
-        // num cenário da V2, o efeito novo (fxNew) desenha direto em coordenadas novas
-        if (s.art && def.fxNew) room.fx.push({ def, p, layer: def.fxLayer || 'top', isNew: true });
-        else if (def.fx) room.fx.push({ def, p, layer: def.fxLayer || 'top' });
+        // o que anima desenha a cada quadro (liveNew), na ordem dos personagens
+        if (def.liveNew) room.sorted.push({ z: g.z, x: p.x, y: p.y, w: g.w, p });
+        // efeito animado por cima de tudo ou no chão (fxNew), em coordenadas novas
+        if (def.fxNew) room.fx.push({ def, p, layer: def.fxLayer || 'top' });
         if (p.interact) room.interact.push({ kind: p.interact, p, rect: kRect({ x: p.x, y: p.y, w: g.w, h: g.h }), base: g.solid && kRect(g.solid) });
-        if (p.food && p.steam !== false) {
-          const st = { x: p.x + 32, y: p.y + 6, seed: room.steam.length * 1.7 };
-          // num cenário da V2, o vapor já fica em coordenadas novas
-          if (s.art) Object.assign(st, { x: st.x * K, y: st.y * K, isNew: true });
-          room.steam.push(st);
-        }
+        if (p.food && p.steam !== false) room.steam.push({ x: (p.x + 32) * K, y: (p.y + 6) * K, seed: room.steam.length * 1.7 });
       });
 
       // NPCs parados: inofensivos, mas ocupam lugar e bloqueiam a visão
@@ -299,12 +278,10 @@ const Room = (() => {
       // NPCs que andam (garçom, pessoas, cervos, cardumes, o barco): linha do tempo como a dos
       // vigias, sem cone. Não veem ninguém. block: false = não bloqueia a passagem; sight: false =
       // não tapa a visão (os cardumes tapam a visão e não a passagem). prop: 'tipo' = desenhado
-      // pelo objeto do Scenery; size: [w, h] = tamanho no chão.
-      // Os vigias e quem anda já são criados em coordenadas novas (s.data); def0 = a definição
-      // velha, para o desenho.
-      s.data.movers.forEach((md, j) => {
+      // pelo objeto do Scenery (liveNew); size: [w, h] = tamanho no chão.
+      // Os vigias e quem anda já são criados em coordenadas novas (s.data).
+      s.data.movers.forEach(md => {
         const m = Guard.create(Object.assign({ cone: false }, md, { loop: (md.loop || []).map(st => Object.assign({ cone: false }, st)) }), s.ox, find);
-        m.def0 = src.movers[j];
         m.scene = idx;
         m.harmless = true;
         m.block = md.block !== false;
@@ -315,22 +292,19 @@ const Room = (() => {
       // vigias: ocupam lugar, mas não bloqueiam a visão um do outro
       s.data.guards.forEach((gd, j) => {
         const g = Guard.create(gd, s.ox, find), g0 = src.guards[j];
-        g.def0 = g0;
         g.scene = idx;
         room.guards.push(g);
         if (gd.pose === 'sit' && !gd.ride) solid(footprint(ox + g0.x, g0.y, 'sit', gd.face), false);
       });
 
-      if (s.art) {
-        news.push({ s, cv: paintNew(s, backs, casters, olds) });
-        const L2 = s.data.look, tint = L2.tint, post = Art.posts[L2.wall.style];
-        if (tint) s.amb = ambCache[s.code] || (ambCache[s.code] = Art.ambient(SW, SH, tint));
-        if (post && !postCache[s.code]) { const P = Art.surface(SW, SH); post(P, L2); postCache[s.code] = P.canvas(); }
-        if (post) s.post = postCache[s.code];
-        s.fx = Art.scenefx[L2.wall.style] || null;
-      }
+      news.push({ s, cv: paintNew(s, backs, casters) });
+      const L2 = s.data.look, tint = L2.tint, post = Art.posts[L2.wall.style];
+      if (tint) s.amb = ambCache[s.code] || (ambCache[s.code] = Art.ambient(SW, SH, tint));
+      if (post && !postCache[s.code]) { const P = Art.surface(SW, SH); post(P, L2); postCache[s.code] = P.canvas(); }
+      if (post) s.post = postCache[s.code];
+      s.fx = Art.scenefx[L2.wall.style] || null;
     });
-    room.bg = Legacy.up(bg0);
+    room.bg = Gfx.canvas(scenes.length * SW, SH);
     news.forEach(n => room.bg.cx.drawImage(n.cv, n.s.ox, 0));
     room.lum = groundLum(room.bg);
     // look.coneLum: o cone enxerga o chão mais escuro (fica vermelho mais fundo), para aparecer no chão

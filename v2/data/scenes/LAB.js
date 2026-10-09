@@ -10,6 +10,8 @@ SCENES.LAB = {
     floor: 'labTile',
     wall: { style: 'lab', height: 58 },
     edge: 'lab',
+    // V2: a luz fria das luminárias do teto: sombras curtas
+    light: { k: [0.02, 0.1], color: '#A8B2C4', contact: '#6A7486' },
     doors: {}
   },
 

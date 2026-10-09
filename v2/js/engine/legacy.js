@@ -1,18 +1,13 @@
-// Arte da V1 na tela da V2. A V2 tem a tela de 480×270 e o mundo 1,25× maior (o Room.build amplia
-// as coordenadas dos cenários). Enquanto um desenho não é refeito no tamanho novo, ele continua
-// desenhando como na V1, em coordenadas velhas, numa camada do tamanho velho; a camada é ampliada
-// 1,25× na tela pelo pixel mais próximo, sem borrar (a cada 4 pixels velhos, 5 novos).
+// Coordenadas da V1 na tela da V2. A V2 tem a tela de 480×270 e o mundo 1,25× maior (o Room.build
+// amplia as coordenadas dos cenários, que continuam nas medidas da V1).
 //   Legacy.K                      1,25: quanto o mundo cresceu
+// Todo o jogo já é desenhado no tamanho novo. A camada velha sobrou só para a sala de teste do menu
+// de teste (testroom.js), que ainda é desenhada como na V1:
 //   Legacy.layer(ctx, x, y, w, h, fn)   fn(c) desenha na camada, em coordenadas velhas, o retângulo
-//                                 (x, y, w, h) velho; depois ele vai para a tela em (x, y) × 1,25.
-//                                 x, y, w e h são múltiplos de 4, para a ampliação cair em pixels inteiros
+//                                 (x, y, w, h) velho; depois ele vai para a tela em (x, y) × 1,25
+//                                 (a cada 4 pixels velhos, 5 novos, pelo pixel mais próximo)
 //   Legacy.world(ctx, cam, fn)    a área de jogo vista pela câmera (cam em coordenadas novas); o ctx já
 //                                 está deslocado para o mundo (translate(-cam, topo))
-//   Legacy.screen(ctx, fn)        a tela inteira (título, batalha, final)
-//   Legacy.up(img)                a imagem velha ampliada 1,25× (o fundo pintado dos cenários)
-//   Legacy.upAt(img, x, y)        a imagem velha em (x, y) velhos ampliada do mesmo jeito que a camada
-//                                 amplia (para desenhar fora dela, no meio do desenho novo): devolve
-//                                 { img, x, y } em coordenadas novas
 // Durante fn, as chamadas do Gfx sem canvas (Gfx.rect(x, y, w, h, cor)) desenham na camada, e os
 // textos usam a fonte da V1 (Gfx.font('v1')), como a arte velha espera.
 const Legacy = (() => {
@@ -43,30 +38,5 @@ const Legacy = (() => {
     layer(ctx, x, 0, Math.ceil(Display.W / K) + 8, Math.ceil((Display.H - Hud.H) / K), fn);
   }
 
-  function screen(ctx, fn) {
-    layer(ctx, 0, 0, Math.ceil(Display.W / K), Math.ceil(Display.H / K), fn);
-  }
-
-  // uma imagem velha ampliada 1,25× (o fundo pintado do cenário)
-  function up(img) {
-    const cv = Gfx.canvas(Math.round(img.width * K), Math.round(img.height * K));
-    cv.cx.drawImage(img, 0, 0, cv.width, cv.height);
-    return cv;
-  }
-
-  // A imagem é completada com transparente para começar e terminar em múltiplos de 4 (a cada 4 pixels
-  // velhos, 5 novos): assim cada pixel cai no mesmo lugar em que cairia dentro da camada.
-  function upAt(img, x, y) {
-    x = Math.round(x);
-    y = Math.round(y);
-    const ax = ((x % 4) + 4) % 4, ay = ((y % 4) + 4) % 4;
-    const w = Math.ceil((img.width + ax) / 4) * 4, h = Math.ceil((img.height + ay) / 4) * 4;
-    const pad = Gfx.canvas(w, h);
-    pad.cx.drawImage(img, ax, ay);
-    const cv = Gfx.canvas(w * K, h * K);
-    cv.cx.drawImage(pad, 0, 0, cv.width, cv.height);
-    return { img: cv, x: (x - ax) * K, y: (y - ay) * K };
-  }
-
-  return { K, layer, world, screen, up, upAt };
+  return { K, layer, world };
 })();

@@ -13,6 +13,8 @@ SCENES.SHOP = {
     wall: { style: 'shop', height: 62, shadow: true },
     edges: { left: 'shop', right: 'shop' },
     edgeWidth: { left: 14 },
+    // V2: a luz quente das luminárias: sombras curtas no carpete
+    light: { k: [0.04, 0.12], color: '#A098AC', contact: '#5E5668' },
     doors: {}
   },
 

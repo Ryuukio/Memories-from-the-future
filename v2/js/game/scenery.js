@@ -7,86 +7,24 @@
 //   solid(p)         → [x, y, w, h] colisão no chão, relativo ao canto do desenho (null = nenhuma)
 //   sight(p)         → [x, y, w, h] bloqueia a visão dos vigias (null = não bloqueia)
 //   base             altura da base para ordenar com os personagens (número ou função de p; padrão: h)
-//   hidden           true = não desenha nada parado (só colisão, ou só a animação fx)
+//   hidden           true = não desenha nada parado (só colisão, ou só a animação fxNew)
 //   layer            'back' = pintado no fundo (parede, banco); 'sorted' (padrão) = ordenado pela base
-//   draw(c, p)       pinta no canvas c, a partir de (0, 0) (desenho da V1)
-//   live(ctx, p, world, img)   opcional: desenha a cada quadro, no lugar da imagem pronta (baú, porta)
-//   liveNew(ctx, p, world)     V2: como o live, mas já no desenho novo, em coordenadas novas (fora da
-//                              camada velha; p continua em coordenadas velhas). Ex.: o Big Jimmy Junk,
-//                              a porta do corredor e o baú. Para quem anda desenhado por um objeto
-//                              (prop: o barco, os cervos), p é o próprio vigia, já em coordenadas novas
-//   fx(ctx, p, world)          opcional: animação por cima (fxLayer 'top') ou no chão ('ground')
-//   art(p)           V2: o desenho novo, usado nos cenários da V2 (ver art.js e room.js): devolve
-//                    { spr, dx, dy, shadow, H, base, contact }: spr = Art.surface com o desenho no
-//                    tamanho novo, em (x, y) × 1,25 + (dx, dy); shadow 'up' (em pé, padrão), 'flat'
-//                    (tampo a H px do chão) ou false; base = a linha do chão no desenho (para a
-//                    sombra); contact = [cx, cy, rx, ry] mancha de contato
-//   fxNew(ctx, p, world)       V2: o fx num cenário da V2, em coordenadas novas
+//   art(p)           o desenho (V2; ver art.js e room.js): devolve { spr, dx, dy, shadow, H, base,
+//                    contact }: spr = Art.surface com o desenho no tamanho novo, em (x, y) × 1,25 +
+//                    (dx, dy); shadow 'up' (em pé, padrão), 'flat' (tampo a H px do chão) ou false;
+//                    base = a linha do chão no desenho (para a sombra); contact = [cx, cy, rx, ry]
+//                    mancha de contato
+//   liveNew(ctx, p, world)     opcional: desenha a cada quadro, no lugar da imagem pronta, em
+//                              coordenadas novas (p continua em coordenadas velhas). Ex.: o Big Jimmy
+//                              Junk, a porta do corredor, o baú, a máquina do tempo. Para quem anda
+//                              desenhado por um objeto (prop: o barco, os cervos), p é o próprio vigia,
+//                              já em coordenadas novas
+//   fxNew(ctx, p, world)       opcional: animação por cima (fxLayer 'top') ou no chão ('ground'), em
+//                              coordenadas novas
 // }
-// world = { t: tempo em segundos, ellen: { x, y } }. Coordenadas do mundo (a sala inteira).
+// world = { t: tempo em segundos, ellen: { x, y } } (coordenadas novas da sala inteira).
 // Os outros arquivos scenery-*.js acrescentam pisos, paredes e objetos de cada fase.
 const Scenery = (() => {
-  const R = Gfx.rect;
-
-  // ruído determinístico: o mesmo cenário sai sempre igual
-  const hash = (a, b) => {
-    let h = (a * 374761393 + b * 668265263) | 0;
-    h = Math.imul(h ^ (h >>> 13), 1274126177);
-    return (h ^ (h >>> 16)) >>> 0;
-  };
-
-  function alpha(c, a, fn) {
-    c.save();
-    c.globalAlpha = a;
-    fn();
-    c.restore();
-  }
-
-  // pontilhado Bayer 4×4 com uma cor sobre uma área, mais denso de um lado (luz, brilho)
-  const BAYER = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]];
-  function glow(c, x, y, w, h, color, density) {
-    c.fillStyle = color;
-    for (let j = 0; j < h; j++) {
-      for (let i = 0; i < w; i++) {
-        if (density(i, j) * 16 > BAYER[(y + j) & 3][(x + i) & 3] + 0.5) c.fillRect(x + i, y + j, 1, 1);
-      }
-    }
-  }
-
-  // ================= pisos =================
-  // FLOORS[nome]: uma tábua ({ tones, seam, grain }, pintada por planks) ou uma função (ver paintBase).
-  // Os pisos da V1 que continuam (as cenas da história, até a etapa 5) estão em scenery-story.js.
-  const FLOORS = {};
-
-  function planks(c, x0, y0, w, h, f, seed) {
-    c.save();
-    c.beginPath();
-    c.rect(x0, y0, w, h);
-    c.clip();
-    for (let row = 0, y = y0; y < y0 + h; row++, y += 6) {
-      let x = x0 - (hash(row, seed) % 40), i = 0;
-      while (x < x0 + w) {
-        const len = 22 + hash(row * 31 + i, seed) % 30;
-        const t = f.tones[hash(row * 7 + i * 13, seed + 1) % f.tones.length];
-        R(x, y, len, 1, t[0], c);
-        R(x, y + 1, len, 3, t[1], c);
-        R(x, y + 4, len, 1, t[2], c);
-        R(x, y + 5, len, 1, f.seam, c);
-        R(x + len - 1, y, 1, 5, f.seam, c);
-        // veios: um ou dois tracinhos mais escuros
-        const g = hash(row * 5 + i, seed + 2);
-        if (g % 3) R(x + 4 + g % (len - 12), y + 2 + (g >> 4) % 2, 3 + (g >> 6) % 4, 1, f.grain, c);
-        x += len;
-        i++;
-      }
-    }
-    c.restore();
-  }
-
-  // ================= paredes =================
-  // WALLS[nome](c, x, w, h, look): a parede do fundo da V1 (as das cenas da história, em scenery-story.js)
-  const WALLS = {};
-
   // ================= objetos =================
   // Tamanho, colisão e visão da V1 (coordenadas velhas; o Room.build amplia). O desenho é o `art`
   // (V2, mais abaixo).
@@ -112,33 +50,6 @@ const Scenery = (() => {
 
   // planta num vaso de barro
   props.plant = { size: () => [18, 30], solid: () => [3, 22, 12, 8], sight: () => [3, 20, 12, 10], base: 30 };
-
-  // ================= bordas laterais (com as passagens) =================
-  // EDGES[estilo](c, x, top, gap, side): x = coluna de 4 px da parede lateral, top = altura da
-  // parede do fundo, gap = [y0, y1] da passagem ou null, side = 'left' | 'right'.
-
-  // postes de madeira, com a luz quente entrando pela passagem
-  function woodEdge(colors) {
-    return (c, x, top, gap, side) => {
-      const segs = gap ? [[top - 8, gap[0]], [gap[1], 192]] : [[top - 8, 192]];
-      segs.forEach(([a, b]) => {
-        R(x, a, 4, b - a, colors[0], c);
-        R(side === 'left' ? x + 3 : x, a, 1, b - a, colors[1], c);
-        R(side === 'left' ? x + 1 : x + 2, a, 1, b - a, colors[2], c);
-      });
-      if (gap) {
-        glow(c, side === 'left' ? x : x - 8, gap[0] + 2, 12, gap[1] - gap[0] - 4, colors[3],
-          i => 0.55 * (side === 'left' ? 1 - i / 12 : i / 12));
-        R(x, gap[0] - 1, 4, 2, colors[1], c);
-        R(x, gap[1] - 1, 4, 2, colors[1], c);
-      }
-    };
-  }
-
-  const EDGES = {
-    wood: woodEdge(['#4A2B1C', '#2E190F', '#6A4129', '#C88A62']),
-    none: () => {}
-  };
 
   // ======================================================================
   //  V2 (art.js): F1 A1 · Okonomiyaki, as cadeiras, a planta e a borda de madeira, em coordenadas
@@ -500,36 +411,5 @@ const Scenery = (() => {
     };
   }
 
-  function render(p) {
-    const g = geometry(p), cv = Gfx.canvas(g.w, g.h);
-    if (g.def.draw) g.def.draw(cv.cx, p);
-    return cv;
-  }
-
-  return {
-    R, hash, glow, alpha, BAYER, props, geometry, render, planks, FLOORS, WALLS, EDGES,
-    woodEdge, chairArt, planksArt, woodEdgeArt,
-    // Fundo de um cenário: piso + parede do fundo + paredes laterais com as portas.
-    // FLOORS[nome] é uma tábua ({ tones, seam, grain }) ou uma função (c, x, y, w, h, look).
-    // WALLS[nome](c, x, w, h, look). A borda lateral é look.edge (ou look.edges.left/right).
-    // Tudo fica recortado no próprio cenário, para nada vazar no cenário do lado.
-    paintBase(c, ox, look) {
-      c.save();
-      c.beginPath();
-      c.rect(ox, 0, 384, 192);
-      c.clip();
-      const wallH = look.wall.height, floor = FLOORS[look.floor];
-      if (typeof floor === 'function') floor(c, ox, wallH, 384, 192 - wallH, look);
-      else planks(c, ox, wallH, 384, 192 - wallH, floor, ox + 1);
-      // sombra da parede no chão
-      if (look.wall.shadow !== false) alpha(c, 0.25, () => R(ox, wallH, 384, 2, '#140F1E', c));
-      WALLS[look.wall.style](c, ox, 384, wallH, look);
-      const doors = look.doors || {}, [b0, b1] = look.bounds || [0, 384];
-      ['left', 'right'].forEach(side => {
-        const style = (look.edges && look.edges[side]) || look.edge || 'wood';
-        EDGES[style](c, side === 'left' ? ox + b0 : ox + b1 - 4, wallH, doors[side] || null, side, look);
-      });
-      c.restore();
-    }
-  };
+  return { props, geometry, chairArt, planksArt, woodEdgeArt };
 })();

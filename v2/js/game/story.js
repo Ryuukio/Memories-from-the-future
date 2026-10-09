@@ -128,17 +128,29 @@ const Story = (() => {
     return [Math.round(Math.sin(time * 70) * 2.5), Math.round(Math.cos(time * 53) * 1.9)];
   }
 
-  // seta dourada piscando, apontando para baixo, em cima de um ponto do mundo (desenho da V1: o
-  // stealth chama dentro da camada velha, em coordenadas velhas)
+  // seta dourada piscando, apontando para baixo, em cima de um ponto do mundo (coordenadas novas; o
+  // stealth chama com o ctx já deslocado para o mundo): o ouro com a luz da esquerda e o contorno
+  let arrow = null;
+  function arrowImg() {
+    if (arrow) return arrow;
+    const rows = ['....#####....', '....#####....', '....#####....', '....#####....', '#############', '.###########.', '..#########..', '...#######...', '....#####....', '.....###.....', '......#......'];
+    const s = Art.surface(15, 13), G = Art.tones(['#8A5A12', '#B8862A', '#E2B040', '#F2C14E', '#FFE08A', '#FFF6D0']);
+    rows.forEach((r, j) => {
+      for (let i = 0; i < r.length; i++) {
+        if (r[i] !== '#') continue;
+        const left = r.indexOf('#'), right = r.lastIndexOf('#');
+        let t = 0.8 - (i - left) / Math.max(1, right - left) * 0.55 - j * 0.02;
+        if (i === left) t += 0.2;
+        s.put(i + 1, j + 1, Art.pick(G, t, i, j));
+      }
+    });
+    s.outline(0.4);
+    return (arrow = s.canvas());
+  }
   function marker(ctx, x, y, t) {
     if (Math.floor(t * 3) % 2) return;
-    const bx = Math.round(x) - 4, by = Math.round(y) - 12 + Math.round(Math.sin(t * 6) * 2);
-    const rows = ['#########', '.#######.', '..#####..', '...###...', '....#....'];
-    rows.forEach((r, j) => {
-      for (let i = 0; i < r.length; i++) if (r[i] === '#') Gfx.rect(bx + i, by + j, 1, 1, j === 0 ? '#FFE08A' : '#F2C14E');
-    });
-    Gfx.rect(bx + 2, by - 4, 5, 4, '#F2C14E');
-    Gfx.rect(bx + 2, by - 4, 5, 1, '#FFE08A');
+    const img = arrowImg();
+    ctx.drawImage(img, Math.round(x) - 7, Math.round(y) - 24 + Math.round(Math.sin(t * 6) * 2.5));
   }
 
   return { reset, action, update, render, shake, marker, find: id => find(id) };

@@ -3,7 +3,7 @@
 //
 // Definição no arquivo do cenário (posições relativas ao cenário, ângulos em graus:
 // 0 = direita, 90 = baixo, 180 = esquerda, 270 = cima). Na V2, o arquivo continua nas coordenadas
-// da V1 e o Room.build entrega a definição já ampliada 1,25× (def0 = a velha, para o desenho):
+// da V1 e o Room.build entrega a definição já ampliada 1,25×:
 //   { who: 'ELLEN_F1', x, y, pose: 'sit', face: 'left', chair: true,
 //     look: 180, range: 44, half: 22, eye: [0, -8], anim: 'cook',
 //     loop: [ { t: 4 }, { t: 0.5, look: 115, range: 72, half: 30 }, ... ] }
@@ -202,15 +202,6 @@ const Guard = (() => {
     // a pessoa, no tamanho da V2 (coordenadas novas)
     g.draw = (ctx, shadow) => {
       Chars.draw(ctx, g.sprite(), g.x, g.y, { chair: def.chair, dir: g.face, pose: g.pose, shadow, wade: def.wade, gear: def.gear, look: Chars.dirOf(g.look), t: g.time });
-    };
-
-    // Quem anda pode ser desenhado por um objeto do Scenery (prop: 'deer', 'shark'...): o live
-    // recebe este vigia como instância (x, y, look, moving, dist, time, def).
-    // k = 1,25: desenho da V1, em coordenadas velhas (a posição e o caminho divididos por k, e a
-    // definição velha, def0), dentro da camada velha (legacy.js)
-    g.drawProp = (ctx, world, k = 1) => {
-      const v = k === 1 ? g : Object.assign(Object.create(g), { x: g.x / k, y: g.y / k, dist: g.dist / k, def: g.def0 || def });
-      Scenery.props[def.prop].live(ctx, v, world || { t: g.time });
     };
 
     // área no chão (para quem anda bloquear a passagem da Ellen); size: [w, h] muda o tamanho

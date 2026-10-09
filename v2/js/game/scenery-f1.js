@@ -15,8 +15,7 @@
     hidden: true,
     size: p => [p.w, p.h],
     solid: p => [0, 0, p.w, p.h],
-    sight: p => (p.sight ? [0, 0, p.w, p.h] : null),
-    draw() {}
+    sight: p => (p.sight ? [0, 0, p.w, p.h] : null)
   };
 
   // ---------- tamanho, colisão e visão dos objetos (V1; o desenho é o `art`, mais abaixo) ----------

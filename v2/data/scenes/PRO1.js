@@ -8,6 +8,8 @@ SCENES.PRO1 = {
     floor: 'diner',
     wall: { style: 'diner', height: 56 },
     edge: 'diner',
+    // V2: a luz branca do teto da lanchonete: sombras curtas
+    light: { k: [0.03, 0.12], color: '#B4A2B8', contact: '#6E5670' },
     doors: {}
   },
 
@@ -18,6 +20,13 @@ SCENES.PRO1 = {
     { type: 'menuPanel', x: 16, y: 8, item: 0 },
     { type: 'menuPanel', x: 328, y: 8, item: 1 },
     { type: 'dinerCounter', x: 70, y: 52, w: 240 },
+    // V2: as banquetas na frente do balcão (só desenho)
+    { type: 'dinerStool', x: 90, y: 70 },
+    { type: 'dinerStool', x: 118, y: 70 },
+    { type: 'dinerStool', x: 146, y: 70 },
+    { type: 'dinerStool', x: 222, y: 70 },
+    { type: 'dinerStool', x: 250, y: 70 },
+    { type: 'dinerStool', x: 278, y: 70 },
     { type: 'booth', x: 20, y: 128 },
     { type: 'booth', x: 20, y: 76 },
     { type: 'booth', x: 316, y: 128 },

@@ -7,6 +7,10 @@ SCENES.PRO2 = {
     floor: 'aptWood',
     wall: { style: 'apt', height: 50 },
     edge: 'apt',
+    // V2: o fim da tarde entrando pela janela: sombras compridas para baixo
+    light: { k: [0.08, 0.2], color: '#B8A8A4', contact: '#7E6C68' },
+    // e a penumbra do quarto: mais claro perto da janela, escurecendo nos cantos
+    tint: { color: '#C4B6C6', lights: [[192, 30, 150, '#2A1C0C', '#FFF4E6']] },
     doors: {}
   },
 
