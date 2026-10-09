@@ -18,6 +18,9 @@
 //   shot=CÓDIGO,t,n    abre uma cena, avança n falas e t segundos (para o print). CÓDIGO: um cenário
 //                      (F1A1...), PRO1, PRO2, LAB1, LAB2, LAB3, SHOP, STAIRS, HALL, CHEST, MACHINE,
 //                      BATTLE, SUPER, RETRY, FALL, ENDING, CARD, CARD2, TITLE, PAUSE ou DEBUG
+//                      Sprites: HEADS (roupas inteiras em 2×), HEADZ:ROUPA/direção:... (só as
+//                      cabeças em 4×), HEADSET:página (as cabeças com acessório, 15 por página)
+//                      e POSES:ROUPA (o __poses)
 (() => {
   const errs = [];
   window.addEventListener('error', e => errs.push('ERR ' + e.message + ' @' + (e.filename || '').split('/').pop() + ':' + e.lineno));
@@ -72,6 +75,59 @@
       if (code === 'FALL') { choose('shoot'); for (let i = 0; i < 40 && B().hp !== 0; i++) { __tap('Space'); __run(0.25); } __run(0.5); }
     }
     else if (code === 'PAUSE') { open('F1A1'); __run(0.5); __tap('Escape'); }
+    else if (code.startsWith('HEADZ')) {
+      // só as cabeças (linhas 0 a 21) em 4×, 4 por linha: HEADZ:ROUPA/direção:...
+      const list = code.split(':').slice(1);
+      if (!list.length) list.push('ELLEN_NOW/down', 'ELLEN_NOW/right', 'ELLEN_NOW/up', 'CUSTOMER_TEAL/right',
+        'FABIO_NOW/down', 'FABIO_NOW/right', 'FABIO_NOW/up', 'CUSTOMER_GREEN/right',
+        'CUSTOMER_GREEN/down', 'TONY/down', 'TONY/right', 'HEYMANS/right');
+      Game.go('title', {}, { instant: true });
+      window.__after = () => {
+        const c = Gfx.ctx; c.imageSmoothingEnabled = false;
+        Gfx.rect(0, 0, Display.W, Display.H, '#5A6A7A');
+        list.forEach((it, i) => {
+          const [id, dir] = it.split('/');
+          c.drawImage(Chars.sprite(id, { dir }), 0, 0, Chars.W, 22, 8 + (i % 4) * 118, 2 + Math.floor(i / 4) * 89, Chars.W * 4, 88);
+        });
+      };
+    }
+    else if (code.startsWith('POSES:')) {
+      // todas as poses de uma roupa (__poses)
+      Game.go('title', {}, { instant: true });
+      window.__after = () => __poses(code.slice(6));
+    }
+    else if (code.startsWith('HEADSET')) {
+      // as cabeças (frente, lado, costas) em 2× das roupas com acessório na cabeça ou cabelo meio
+      // a meio, 15 por página: HEADSET:página (0, 1, ...)
+      const page = +(code.split(':')[1] || 0);
+      const ids = Object.keys(CHARACTERS).filter(id => (CHARACTERS[id].extras || []).length || CHARACTERS[id].hair).slice(page * 15, page * 15 + 15);
+      Game.go('title', {}, { instant: true });
+      window.__after = () => {
+        const c = Gfx.ctx; c.imageSmoothingEnabled = false;
+        Gfx.rect(0, 0, Display.W, Display.H, '#5A6A7A');
+        ids.forEach((id, i) => ['down', 'right', 'up'].forEach((dir, k) => {
+          const x = 4 + (i % 3) * 160 + k * 52, y = 2 + Math.floor(i / 3) * 53;
+          c.drawImage(Chars.sprite(id, { dir }), 0, 0, Chars.W, 22, x, y, Chars.W * 2, 44);
+          if (!k) Gfx.text(id, x, y + 43, '#FFFFFF');
+        }));
+      };
+    }
+    else if (code.startsWith('HEADS')) {
+      // as roupas de frente, de lado e de costas em 2× (3 por linha), para julgar a forma da cabeça;
+      // HEADS:ID1:ID2... escolhe as roupas (padrão: os dois, o Tony, a Heymans e um casal genérico)
+      const ids = code.split(':').slice(1);
+      if (!ids.length) ids.push('ELLEN_NOW', 'FABIO_NOW', 'TONY', 'HEYMANS', 'CUSTOMER_GREEN', 'CUSTOMER_TEAL');
+      Game.go('title', {}, { instant: true });
+      window.__after = () => {
+      const c = Gfx.ctx; c.imageSmoothingEnabled = false;
+      Gfx.rect(0, 0, Display.W, Display.H, '#5A6A7A');
+      ids.forEach((id, i) => ['down', 'right', 'up'].forEach((dir, k) => {
+        const x = 6 + (i % 3) * 158 + k * 52, y = 4 + Math.floor(i / 3) * 132;
+        c.drawImage(Chars.sprite(id, { dir }), x, y, Chars.W * 2, Chars.H * 2);
+        if (!k) Gfx.text(id, x, y + 100, '#FFFFFF');
+      }));
+      };
+    }
     else if (code === 'DEBUG') { open('F3B1'); __run(0.5); __tap('KeyD', { ctrlKey: true, shiftKey: true, key: 'D' }); }
   }
 
@@ -167,6 +223,7 @@
         open(code);
         for (let i = 0; i < (+taps || 0); i++) { __tap('Space'); __run(0.3); }
         __run(+t || 0.5);
+        if (window.__after) window.__after();
         out(JSON.stringify({ code, game: Game.name, errs }));
       }
     } catch (e) {
