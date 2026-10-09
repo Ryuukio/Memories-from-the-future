@@ -213,6 +213,12 @@
       else if (h01(x, y, 431) < 0.05 && vnoise(x, y, 6, 430) > 0.55) c = '#7AB4DA';
       S.put(x, y, c);
     }
+    // look.mirrorSky: o céu espelhado (o F2 A2 é a mesma praia, à direita do F2 A1: o morro continua
+    // de onde parou, na borda da esquerda, e desce para a direita)
+    if (look.mirrorSky) for (let y = 0; y < H; y++) for (let x = 0; x < 240; x++) {
+      const a = S.get(x, y), b = S.get(479 - x, y);
+      if (a && b) { S.put(x, y, b); S.put(479 - x, y, a); }
+    }
   };
 
   // brilhos do sol no mar e a água indo e voltando na areia molhada

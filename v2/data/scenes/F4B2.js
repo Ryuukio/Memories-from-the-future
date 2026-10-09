@@ -25,6 +25,9 @@ SCENES.F4B2 = {
     { type: 'ringCase', x: 250, y: 150 },
     { type: 'ringCase', x: 120, y: 160 },
     { type: 'plant', x: 352, y: 48 },
+    // V2: as banquetas em que os dois sentam (só desenho)
+    { type: 'workStool', x: 85, y: 76 },
+    { type: 'workStool', x: 111, y: 76 },
     { type: 'bulbs', x: 40, y: 46, n: 6, gap: 60 }
   ],
 

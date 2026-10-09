@@ -33,6 +33,8 @@
   props.bulbs = { hidden: true, size: () => [1, 1] };
   props.workbench = { size: p => [p.w || 90, 26], solid: p => [0, 4, p.w || 90, 18], base: 20 };
   props.ringCase = { size: () => [44, 26], solid: () => [0, 6, 44, 18], base: 24 };
+  // banqueta da bancada (só desenho: quem senta já ocupa o lugar); o meio fica em x + 7, os pés em y + 12
+  props.workStool = { size: () => [14, 12], base: 12 };
 
   // C · Yanai e Tottori: a lanterna de peixinho e o fio (por cima de tudo) e o pau com o celular
   // (p.timer: a tela pisca)
@@ -656,6 +658,17 @@
     for (let x = 0; x < 56; x++) { s.put(x, 3, '#FFFFFF'); s.put(x, 4, '#C8D8E0'); }
     s.outline(0.5);
     return { spr: s, dx: 0, dy: 0, base: 31, contact: [28, 31, 26, 1.5] };
+  };
+
+  // banqueta de madeira com os pés pretos (o assento aparece embaixo de quem está sentado)
+  props.workStool.art = () => {
+    const s = A.surface(18, 15);
+    for (const [lx, top] of [[3, 9], [14, 9], [9, 10]]) for (let y = top; y < 15; y++) { s.put(lx, y, IRONF[lx < 9 ? 3 : 1]); s.put(lx + 1, y, IRONF[0]); }
+    for (let x = 4; x < 15; x++) s.put(x, 13, IRONF[2]);
+    s.ellipse(9, 7.5, 7.5, 2.6, (x, y, nx, ny) => pick(WOOD, sphere(nx, ny) + 0.1, x, y));
+    for (let x = 2; x < 17; x++) if (s.get(x, 9)) s.put(x, 10, WOOD[1]);
+    s.outline(0.5);
+    return { spr: s, dx: 0, dy: 0, base: 14, contact: [9, 14, 7, 1.5] };
   };
 
   // lâmpadas de filamento penduradas do teto (fio preto, o vidro âmbar com o filamento aceso e o

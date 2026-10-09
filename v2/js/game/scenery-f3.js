@@ -152,16 +152,24 @@
     return { spr: s, shadow: false };
   };
 
-  // faixa "HAPPY BIRTHDAY" (texto do config) com as bandeirinhas atrás das letras
+  // faixa "HAPPY BIRTHDAY" (texto do config): um varal com uma bandeirinha para cada letra (o espaço
+  // vira um vão), a letra branca no meio de cada uma
   props.banner.art = p => {
-    const txt = Art.text(p.text || '', '#FFFFFF', { shadow: '#3A2A30' }), w = txt.width + 14, s = A.surface(w, 20);
+    const chars = [...(p.text || '')], PW = 8, GAP = 4;
+    const w = chars.reduce((n, ch) => n + (ch === ' ' ? GAP : PW), 4), s = A.surface(w + 2, 22);
     const cols = ['#D8443A', '#F2C14E', '#5DAA62', '#3A78C8', '#E888A8'];
-    for (let x = 0; x < w; x++) s.put(x, Math.round(2 + Math.sin(x / w * Math.PI) * 2), '#8A6440');
-    for (let k = 0, x = 2; x < w - 8; x += 8, k++) {
-      const y0 = Math.round(3 + Math.sin((x + 4) / w * Math.PI) * 2), R = A.ramp(cols[k % 5]);
-      for (let j = 0; j < 13; j++) for (let i = 0; i < 7; i++) if (j < 9 || Math.abs(i - 3) < 13 - j) s.put(x + i, y0 + j, pick(R, 0.75 - i * 0.07 - j * 0.02, x + i, y0 + j));
+    const sag = x => Math.round(2 + Math.sin(x / w * Math.PI) * 3);
+    for (let x = 0; x < w + 2; x++) s.put(x, sag(x), '#8A6440');
+    let x = 2, k = 0;
+    for (const ch of chars) {
+      if (ch === ' ') { x += GAP; continue; }
+      const y0 = sag(x + 3) + 1, R = A.ramp(cols[k % 5]);
+      for (let j = 0; j < 14; j++) for (let i = 0; i < 7; i++) if (j < 10 || Math.abs(i - 3) <= 13 - j) s.put(x + i, y0 + j, pick(R, 0.75 - i * 0.07 - j * 0.02 + (j === 0 ? 0.15 : 0), x + i, y0 + j));
+      const letter = Art.text(ch, '#FFFFFF', { shadow: '#3A2A30' }), gw = letter.width - 2;
+      s.draw(letter, x + Math.floor((7 - gw) / 2), y0 + 1);
+      x += PW;
+      k++;
     }
-    s.draw(txt, 7, 5);
     return { spr: s, dx: -2, dy: 0, shadow: false };
   };
 

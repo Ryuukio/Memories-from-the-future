@@ -9,6 +9,8 @@ SCENES.F2A2 = {
     floor: 'beach',
     sea: [40, 78],
     wall: { style: 'beachSky', height: 40, shadow: false },
+    // V2: o céu espelhado, para o morro do F2 A1 continuar daqui (só desenho)
+    mirrorSky: true,
     edge: 'beachRocks',
     // V2: sol do meio-dia, alto e um pouco à esquerda: sombras curtas para a direita, azuladas
     light: { k: [0.32, 0.24], color: '#B4BCD8', contact: '#7E86A6' },
