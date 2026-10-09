@@ -1,0 +1,25 @@
+/* Fundo preto: o espaço que sobra vira barra preta. O display.js amplia o canvas em escala inteira. */
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: #000;
+  overflow: hidden;
+}
+
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#game {
+  display: block;
+  image-rendering: pixelated;
+}
+
+/* sem cursor do mouse em tela cheia */
+:fullscreen,
+:fullscreen * {
+  cursor: none;
+}
