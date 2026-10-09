@@ -124,9 +124,7 @@ const BattleState = (() => {
     // balas
     for (let i = 0; i < 5; i++) {
       const bx = x + 12 + i * 11, by = y + 24, on = i < bullets;
-      Gfx.rect(bx, by + 2, 5, 9, on ? '#C9A24A' : '#3A3650');
-      Gfx.rect(bx + 1, by, 3, 2, on ? '#E8B888' : '#3A3650');
-      if (on) Gfx.rect(bx, by + 2, 1, 9, '#F2D27A');
+      Gfx.ctx.drawImage(Items.mini('bullet', on), bx - 1, by - 1);
     }
     Gfx.text(T().menu.bullets.replace('{n}', bullets), x + w - 10, y + 26, '#CFC8E8', { align: 'right' });
   }
@@ -265,10 +263,8 @@ const BattleState = (() => {
       ctx.restore();
     } else {
       ctx.drawImage(e, 0, 0, SW, SH, ex, ey, SW * 2, SH * 2);
-      // o revólver velho na mão direita
-      Gfx.rect(ex + 39, ey + 60, 9, 3, '#5E6470');
-      Gfx.rect(ex + 39, ey + 60, 9, 1, '#8A909C');
-      Gfx.rect(ex + 39, ey + 63, 3, 4, '#8A5A32');
+      // o revólver velho na mão direita (o cano de ex + 39 a ex + 48, na altura ey + 60)
+      ctx.drawImage(Items.mini('revolver'), ex + 32, ey + 58);
     }
   }
 

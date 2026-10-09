@@ -23,7 +23,7 @@
 //                      cabeças em 4×), HEADSET:página (as cabeças com acessório, 15 por página)
 //                      e POSES:ROUPA (o __poses). LABTALK:quem:vezes = a conversa do laboratório
 //                      (notes, tony ou heymans) aberta na vez `vezes`. HOME = a imagem da página
-//                      inicial (ver o topo de home/home.js)
+//                      inicial (ver o topo de home/home.js). ITEM:n = o cartão do item do baú da fase n
 (() => {
   const errs = [];
   window.addEventListener('error', e => errs.push('ERR ' + e.message + ' @' + (e.filename || '').split('/').pop() + ':' + e.lineno));
@@ -87,6 +87,13 @@
       if (code === 'FALL') { choose('shoot'); for (let i = 0; i < 40 && B().hp !== 0; i++) { __tap('Space'); __run(0.25); } __run(0.5); }
     }
     else if (code === 'PAUSE') { open('F1A1'); __run(0.5); __tap('Escape'); }
+    else if (code.startsWith('ITEM:')) {
+      // o cartão do item do baú da fase n (ITEM:1 ... ITEM:4), já aberto
+      const n = +code.slice(5);
+      Flow.memory = n - 1;
+      Game.go('stealth', { stage: n, kind: 'chest', codes: ['CHEST'] }, { instant: true });
+      __run(0.5); Dialog.close(); Game.skip(); __run(1.5);
+    }
     else if (code === 'HOME') {
       // a imagem da página inicial (home/32bit.png): o F1 A2 inteiro, a Ellen e o Fabio escondidos
       // atrás do carrinho de sorvete e os dois do passado no banco (o mesmo enquadramento do

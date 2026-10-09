@@ -74,7 +74,7 @@ const Chest = (() => {
   function render(ctx) {
     if (!s || s.card <= 0) return;
     const img = Items.sprite(cfg().chest.icon || 'revolver');
-    const scale = 4, iw = img.width * scale, ih = img.height * scale;   // V2: 3 × 1,25 ≈ 4
+    const scale = 1, iw = img.width * scale, ih = img.height * scale;   // V2: o item já vem no tamanho de verdade
     const name = cfg().chest.item;
     const w = Math.max(iw + 50, Gfx.textWidth(name) + 36), h = ih + 55;
     const x = Math.round((Display.W - w) / 2), y = Math.round(55 + (1 - s.card) * 12);
