@@ -145,17 +145,19 @@ const Chars = (() => {
   }
 
   // ---------- rampas de cor ----------
+  // warm: a pele, com a sombra puxando para o rosado (e não para o roxo, que parece barba)
   const ramps = {};
-  const SHADE = '#2E2660', LIGHT = '#FFF4D2';
-  function ramp(hex) {
-    if (ramps[hex]) return ramps[hex];
+  const SHADE = '#2E2660', SKIN_SHADE = '#A04858', LIGHT = '#FFF4D2';
+  function ramp(hex, warm) {
+    const key = warm ? hex + 'w' : hex;
+    if (ramps[key]) return ramps[key];
     const [r, g, b] = Gfx.rgb(hex);
     const dark = k => {
-      const m = 1 - 0.15 * k;
-      return Gfx.mix(Gfx.hex(Math.round(r * m), Math.round(g * m), Math.round(b * m)), SHADE, 0.09 * k);
+      const m = 1 - (warm ? 0.1 : 0.15) * k;
+      return Gfx.mix(Gfx.hex(Math.round(r * m), Math.round(g * m), Math.round(b * m)), warm ? SKIN_SHADE : SHADE, (warm ? 0.1 : 0.09) * k);
     };
     const light = k => Gfx.mix(hex, LIGHT, 0.15 * k + (Gfx.lum(hex) < 0.2 ? 0.04 * k : 0));
-    return (ramps[hex] = [dark(3), dark(2), dark(1), hex, light(1), light(2), light(3)].map(Gfx.rgb));
+    return (ramps[key] = [dark(3), dark(2), dark(1), hex, light(1), light(2), light(3)].map(Gfx.rgb));
   }
 
   // pontilhado só na passagem de um tom para o outro (SHARP: quanto maior, mais estreita a faixa
@@ -175,6 +177,7 @@ const Chars = (() => {
   // luz de cima e da esquerda (um pouco de frente: o jogo é visto de cima)
   const L = (() => { const v = [-0.5, -0.62, 0.6], m = Math.hypot(...v); return v.map(a => a / m); })();
   const FLAT = { e: 1, E: 1, l: 1, '*': 1, m: 1, d: 1 };
+  const HAIR = { h: 1, H: 1, j: 1, r: 1, R: 1, q: 1 };
 
   // Pinta a grade: rampa de cada letra + luz da "estufada" + sombra de quem está por cima +
   // contorno. pattern(letra, x, y) pode devolver a cor de uma estampa naquele pixel.
@@ -209,6 +212,9 @@ const Chars = (() => {
     }
     const H0 = (x, y, p) => (member(x, y, p) ? hgt[y * w + x] : 0);
 
+    // pele: no rosto (a cabeça, fora o cabelo) fica lisa, sem sombra; no resto do corpo, a sombra é
+    // rosada e de no máximo um tom
+    const skin = new Set([palette.s, palette.S]);
     const col = Array(N).fill(null);
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
       const c = ch[y][x];
@@ -216,8 +222,8 @@ const Chars = (() => {
       if (c === '*') { col[y * w + x] = [255, 255, 255]; continue; }
       const base = (pattern && pattern(c, x, y)) || palette[c];
       if (!base) { warn(c); col[y * w + x] = [255, 0, 255]; continue; }
-      if (FLAT[c]) { col[y * w + x] = Gfx.rgb(base); continue; }
       const p = pt[y][x];
+      if (FLAT[c] || (p === PART.HEAD && !HAIR[c])) { col[y * w + x] = Gfx.rgb(base); continue; }
       const gx = (H0(x + 1, y, p) - H0(x - 1, y, p)) / 2, gy = (H0(x, y + 1, p) - H0(x, y - 1, p)) / 2;
       const m = Math.hypot(gx, gy, 1), dot = (-gx * L[0] - gy * L[1] + L[2]) / m - L[2];
       let t = 0.5 + dot * (dot > 0 ? 0.42 : 0.3);
@@ -225,6 +231,7 @@ const Chars = (() => {
       // sombra de quem está por cima (o queixo, a franja, a barra da roupa)
       if (y > 0 && pt[y - 1][x] > p && ch[y - 1][x] !== '.') t -= 0.2;
       else if (y > 1 && pt[y - 2][x] > p && ch[y - 2][x] !== '.') t -= 0.09;
+      if (skin.has(base)) { col[y * w + x] = pick(ramp(base, true), Math.max(0.36, t), x, y); continue; }
       col[y * w + x] = pick(ramp(base), t, x, y);
     }
 
