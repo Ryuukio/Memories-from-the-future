@@ -10,6 +10,9 @@
 //                                 está deslocado para o mundo (translate(-cam, topo))
 //   Legacy.screen(ctx, fn)        a tela inteira (título, batalha, final)
 //   Legacy.up(img)                a imagem velha ampliada 1,25× (o fundo pintado dos cenários)
+//   Legacy.upAt(img, x, y)        a imagem velha em (x, y) velhos ampliada do mesmo jeito que a camada
+//                                 amplia (para desenhar fora dela, no meio do desenho novo): devolve
+//                                 { img, x, y } em coordenadas novas
 // Durante fn, as chamadas do Gfx sem canvas (Gfx.rect(x, y, w, h, cor)) desenham na camada, e os
 // textos usam a fonte da V1 (Gfx.font('v1')), como a arte velha espera.
 const Legacy = (() => {
@@ -51,5 +54,19 @@ const Legacy = (() => {
     return cv;
   }
 
-  return { K, layer, world, screen, up };
+  // A imagem é completada com transparente para começar e terminar em múltiplos de 4 (a cada 4 pixels
+  // velhos, 5 novos): assim cada pixel cai no mesmo lugar em que cairia dentro da camada.
+  function upAt(img, x, y) {
+    x = Math.round(x);
+    y = Math.round(y);
+    const ax = ((x % 4) + 4) % 4, ay = ((y % 4) + 4) % 4;
+    const w = Math.ceil((img.width + ax) / 4) * 4, h = Math.ceil((img.height + ay) / 4) * 4;
+    const pad = Gfx.canvas(w, h);
+    pad.cx.drawImage(img, ax, ay);
+    const cv = Gfx.canvas(w * K, h * K);
+    cv.cx.drawImage(pad, 0, 0, cv.width, cv.height);
+    return { img: cv, x: (x - ax) * K, y: (y - ay) * K };
+  }
+
+  return { K, layer, world, screen, up, upAt };
 })();

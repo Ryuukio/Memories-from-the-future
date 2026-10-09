@@ -11,7 +11,9 @@
 // balanceamento da V1 se mantém. O desenho que ainda é da V1 (o fundo, os objetos, os NPCs parados,
 // os efeitos) fica em coordenadas velhas e é ampliado na tela (legacy.js):
 //   room.bg                 o fundo pintado, já ampliado (480 × 240 por cenário)
-//   room.sorted, fx, steam, npcs   em coordenadas velhas (só desenho; z é a base velha)
+//   room.sorted, fx, steam, npcs   em coordenadas velhas (só desenho; z é a base velha). Nos objetos
+//                           parados, big/bx/by = a imagem já ampliada e a posição nova
+//   (os personagens e o que tem liveNew já são desenhados no tamanho novo; ver stealth.js)
 //   room.scenes[i].data     o cenário com as coordenadas novas (look, start, photoZone, stairs,
 //                           guards, movers; props e npcs ficam como no arquivo)
 //   room.scenes[i].src      o arquivo do cenário como está (coordenadas velhas, para os pintores)
@@ -165,7 +167,12 @@ const Room = (() => {
         if (g.solid) solid(g.solid, false);
         if (g.sight) room.sight.push(kRect(g.sight));
         if (g.def.layer === 'back') bg0.cx.drawImage(img, p.x, p.y);
-        else if (!g.def.hidden) room.sorted.push({ z: g.z, img, x: p.x, y: p.y, w: g.w, p });
+        else if (!g.def.hidden) {
+          const o = { z: g.z, img, x: p.x, y: p.y, w: g.w, p };
+          // o que não anima vai para a tela já ampliado (big), no meio dos personagens novos
+          if (!g.def.live && !g.def.liveNew) { const u = Legacy.upAt(img, p.x, p.y); o.big = u.img; o.bx = u.x; o.by = u.y; }
+          room.sorted.push(o);
+        }
         if (g.def.fx) room.fx.push({ def: g.def, p, layer: g.def.fxLayer || 'top' });
         if (p.interact) room.interact.push({ kind: p.interact, p, rect: kRect({ x: p.x, y: p.y, w: g.w, h: g.h }), base: g.solid && kRect(g.solid) });
         if (p.food && p.steam !== false) room.steam.push({ x: p.x + 32, y: p.y + 6, seed: room.steam.length * 1.7 });

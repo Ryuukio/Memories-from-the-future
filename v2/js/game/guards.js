@@ -173,14 +173,11 @@ const Guard = (() => {
 
     g.coneActive = () => g.coneOn && g.coneScale > 0.6;
 
-    // topo da cabeça, para o balão de suspeita. k = 1,25: em coordenadas velhas, para o desenho da
-    // V1 (a posição dividida por k e a distância do sprite velho)
-    g.headTop = (k = 1) => {
-      const x = g.x / k, y = g.y / k;
+    // topo da cabeça do sprite, para o balão de suspeita
+    g.headTop = () => {
       const side = g.pose === 'lie' ? g.face : g.pose === 'swim' ? Chars.dirOf(g.look) : null;
-      if (side === 'left' || side === 'right') return { x: x + (side === 'right' ? 8 : -8), y: y - 15 };
-      if (g.pose === 'floor') return { x, y: y - 28 };
-      return { x, y: y - 31 };
+      const [dx, dy] = Chars.headTop(g.pose, side);
+      return { x: g.x + dx, y: g.y + dy };
     };
 
     g.stage = () => Math.min(3, Math.floor(g.sus));
@@ -202,14 +199,18 @@ const Guard = (() => {
       return Chars.sprite(def.who, { dir: g.moving || !g.harmless ? lookDir : g.face, frame, eyes });
     };
 
+    // a pessoa, no tamanho da V2 (coordenadas novas)
+    g.draw = (ctx, shadow) => {
+      Chars.draw(ctx, g.sprite(), g.x, g.y, { chair: def.chair, dir: g.face, pose: g.pose, shadow, wade: def.wade, gear: def.gear, look: Chars.dirOf(g.look), t: g.time });
+    };
+
     // Quem anda pode ser desenhado por um objeto do Scenery (prop: 'deer', 'shark'...): o live
     // recebe este vigia como instância (x, y, look, moving, dist, time, def).
     // k = 1,25: desenho da V1, em coordenadas velhas (a posição e o caminho divididos por k, e a
-    // definição velha, def0)
-    g.draw = (ctx, shadow, world, k = 1) => {
+    // definição velha, def0), dentro da camada velha (legacy.js)
+    g.drawProp = (ctx, world, k = 1) => {
       const v = k === 1 ? g : Object.assign(Object.create(g), { x: g.x / k, y: g.y / k, dist: g.dist / k, def: g.def0 || def });
-      if (def.prop) { Scenery.props[def.prop].live(ctx, v, world || { t: g.time }); return; }
-      Chars.draw(ctx, g.sprite(), v.x, v.y, { chair: def.chair, dir: g.face, pose: g.pose, shadow, wade: def.wade, gear: def.gear, look: Chars.dirOf(g.look), t: g.time });
+      Scenery.props[def.prop].live(ctx, v, world || { t: g.time });
     };
 
     // área no chão (para quem anda bloquear a passagem da Ellen); size: [w, h] muda o tamanho

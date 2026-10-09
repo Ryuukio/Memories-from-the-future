@@ -21,8 +21,9 @@
 //                     Nas salas, no corredor e no baú, toca a música da fase.
 //
 // V2: coordenadas novas (o mundo da V1 × 1,25; ver room.js). Os tamanhos daqui (pés, distância do
-// Fabio, passos) são os da V1 × 1,25, para o jogo ficar igual. A arte que ainda é da V1 é desenhada
-// em coordenadas velhas (÷ 1,25) numa camada ampliada na tela (Legacy.world).
+// Fabio, passos) são os da V1 × 1,25, para o jogo ficar igual. Os personagens são os da V2 (26×48);
+// a arte que ainda é da V1 (cenários) é desenhada em coordenadas velhas (÷ 1,25) numa camada
+// ampliada na tela (Legacy.world), ou já vem ampliada (os objetos parados).
 const StealthState = (() => {
   const TOP = Hud.H, VIEW_W = Display.W, VIEW_H = Display.H - Hud.H, K = Room.K;
   const FOLLOW = 22.5;   // distância do Fabio atrás da Ellen, medida pelo caminho que ela fez
@@ -449,49 +450,68 @@ const StealthState = (() => {
 
       ctx.save();
       ctx.translate(-cam, TOP);
-      // a arte da V1, em coordenadas velhas, numa camada ampliada 1,25× (legacy.js). A ordem segue a
-      // base em coordenadas novas: a dos objetos × 1,25 e a dos personagens + 0,5 (no empate, o
-      // personagem fica na frente do objeto, como na V1)
+      // A ordem segue a base em coordenadas novas: a dos objetos × 1,25 e a dos personagens + 0,5 (no
+      // empate, o personagem fica na frente do objeto, como na V1). Os personagens são desenhados no
+      // tamanho novo; os objetos parados já vêm ampliados (big); o que ainda é desenho animado da V1
+      // (live dos objetos, os bichos e o barco de quem anda, os efeitos) vai para a camada velha
+      // (legacy.js), em coordenadas velhas: cada trecho seguido de desenhos velhos numa camada só.
       const old = { t: time, ellen: { x: ellen.x / K, y: ellen.y / K } };
       const cam0 = cam / K, view0 = VIEW_W / K;
       const visible = (x, w) => x + w >= cam0 - 16 && x <= cam0 + view0 + 16;
-      Legacy.world(ctx, cam, lc => {
-        room.fx.forEach(f => { if (f.layer === 'ground' && visible(f.p.x, 64)) f.def.fx(lc, f.p, old); });
+      const ground = room.fx.filter(f => f.layer === 'ground' && visible(f.p.x, 64));
+      if (ground.length) Legacy.world(ctx, cam, lc => ground.forEach(f => f.def.fx(lc, f.p, old)));
 
-        const list = [];
-        room.sorted.forEach(o => {
-          if (!visible(o.x, o.w) || (o.p && o.p.hidden)) return;
-          if (o.p && Scenery.props[o.p.type].live) list.push({ z: o.z * K, draw: () => Scenery.props[o.p.type].live(lc, o.p, old, o.img) });
-          else list.push({ z: o.z * K, draw: () => lc.drawImage(o.img, o.x, o.y) });
-        });
-        room.npcs.forEach(n => {
-          if (!n.hidden && visible(n.x - 16, 32)) list.push({ z: Math.round(n.y * K) + 0.5, draw: () => Chars.draw(lc, Room.npcSprite(n, time), n.x, n.y, { chair: n.chair, dir: n.dir, pose: n.pose, shadow: shadowAt(n.x * K), wade: n.wade, gear: n.gear, look: n.dir, t: time }) });
-        });
-        room.guards.concat(room.movers).forEach(g => list.push({ z: g.z() + 0.5, draw: () => g.draw(lc, shadowAt(g.x), old, K) }));
-        const fFrame = fabio.moving ? Math.floor(fabio.dist / STRIDE) % 4 : -1;
-        const eFrame = ellen.moving ? Math.floor(ellen.dist / STRIDE) % 4 : -1;
-        if (params.player) {
-          list.push({ z: fabio.y + 0.5, draw: () => Chars.draw(lc, Chars.sprite('FABIO_NOW', { dir: fabio.dir, frame: fFrame }), fabio.x / K, fabio.y / K, { shadow: shadowAt(fabio.x) }) });
-          list.push({ z: ellen.y + 0.5, draw: () => Chars.draw(lc, Chars.sprite('ELLEN_NOW', { dir: ellen.dir, frame: eFrame }), ellen.x / K, ellen.y / K, { shadow: shadowAt(ellen.x) }) });
-        }
-        list.sort((p, q) => p.z - q.z).forEach(o => o.draw());
-
-        drawSteam(lc);
-        room.fx.forEach(f => { if (f.layer === 'top' && visible(f.p.x, 64)) f.def.fx(lc, f.p, old); });
+      const list = [];
+      room.sorted.forEach(o => {
+        if (!visible(o.x, o.w) || (o.p && o.p.hidden)) return;
+        const def = o.p && Scenery.props[o.p.type];
+        if (def && def.liveNew) list.push({ z: o.z * K, draw: () => def.liveNew(ctx, o.p, world) });
+        else if (def && def.live) list.push({ z: o.z * K, old: lc => def.live(lc, o.p, old, o.img) });
+        else list.push({ z: o.z * K, draw: () => ctx.drawImage(o.big, o.bx, o.by) });
       });
+      room.npcs.forEach(n => {
+        if (!n.hidden && visible(n.x - 24, 48)) list.push({ z: Math.round(n.y * K) + 0.5, draw: () => Chars.draw(ctx, Room.npcSprite(n, time), n.x * K, n.y * K, { chair: n.chair, dir: n.dir, pose: n.pose, shadow: shadowAt(n.x * K), wade: n.wade, gear: n.gear, look: n.dir, t: time }) });
+      });
+      room.guards.concat(room.movers).forEach(g => {
+        if (g.def.prop) list.push({ z: g.z() + 0.5, old: lc => g.drawProp(lc, old, K) });
+        else list.push({ z: g.z() + 0.5, draw: () => g.draw(ctx, shadowAt(g.x)) });
+      });
+      const fFrame = fabio.moving ? Math.floor(fabio.dist / STRIDE) % 4 : -1;
+      const eFrame = ellen.moving ? Math.floor(ellen.dist / STRIDE) % 4 : -1;
+      if (params.player) {
+        list.push({ z: fabio.y + 0.5, draw: () => Chars.draw(ctx, Chars.sprite('FABIO_NOW', { dir: fabio.dir, frame: fFrame }), fabio.x, fabio.y, { shadow: shadowAt(fabio.x) }) });
+        list.push({ z: ellen.y + 0.5, draw: () => Chars.draw(ctx, Chars.sprite('ELLEN_NOW', { dir: ellen.dir, frame: eFrame }), ellen.x, ellen.y, { shadow: shadowAt(ellen.x) }) });
+      }
+      list.sort((p, q) => p.z - q.z);
+      for (let i = 0; i < list.length;) {
+        if (!list[i].old) { list[i++].draw(); continue; }
+        const run = [];
+        while (i < list.length && list[i].old) run.push(list[i++].old);
+        Legacy.world(ctx, cam, lc => run.forEach(f => f(lc)));
+      }
+
+      const top = room.fx.filter(f => f.layer === 'top' && visible(f.p.x, 64));
+      if (room.steam.length || top.length) {
+        Legacy.world(ctx, cam, lc => {
+          drawSteam(lc);
+          top.forEach(f => f.def.fx(lc, f.p, old));
+        });
+      }
       drawTint(ctx, cam);
-      Legacy.world(ctx, cam, lc => {
+      if (params.marker || room.guards.some(g => g.fx === 'heart')) Legacy.world(ctx, cam, lc => {
+        // coraçõezinhos (desenho da V1): heartAt é da V1, relativo aos pés; no sprite novo, a cabeça
+        // fica mais alta e mais larga (26×48 em vez de 16×32)
         room.guards.forEach(g => {
           if (g.fx !== 'heart') return;
           const at = g.def.heartAt || [0, -34];
-          Guard.hearts(lc, g.x / K + at[0], g.y / K + at[1], time);
+          Guard.hearts(lc, (g.x + at[0] * 1.6) / K, (g.y + at[1] * 1.5) / K, time);
         });
         if (params.marker) Story.marker(lc, params.marker[0] / K, params.marker[1] / K, time);
       });
-      // balões de suspeita: no tamanho novo, em cima da cabeça do desenho velho
+      // balões de suspeita: no tamanho novo, em cima da cabeça
       room.guards.forEach(g => {
-        const top = g.headTop(K);
-        Guard.bubble(ctx, top.x * K, top.y * K, g.stage(), time);
+        const top = g.headTop();
+        Guard.bubble(ctx, top.x, top.y, g.stage(), time);
       });
       if (Debug.flags.boxes) drawDebug(ctx);
       ctx.restore();

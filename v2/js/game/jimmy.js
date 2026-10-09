@@ -1,17 +1,40 @@
 // Big Jimmy Junk (Apêndice B): um cheeseburger gigante com queijo derretendo e gergelim no topo,
 // bigode de ketchup e mostarda, corrente de ouro com pingente de donut e um copo de refrigerante
 // gigante como cetro. Capangas: batatas fritas soldado e copos de refrigerante. Tudo desenhado em
-// código, com o contorno colorido do Apêndice E (o contorno é calculado em volta das formas).
+// código, no estilo da V2: volumes com a luz de cima e da esquerda, rampas de cor com pontilhado
+// (as mesmas dos personagens, Chars.ramp) e contorno com a cor de dentro escurecida.
 //
-// Jimmy.sprite('normal' | 'super')  → canvas (normal ~64×64 + o cetro; super ~96×96, com batata
-//                                     e refrigerante gigantes). Os pés ficam no meio da base.
+// Tamanho da V2 (a V1 × 1,25): o normal tem ~80 px de altura (+ o cetro), o SUPERSIZE ~120 px, com
+// batata e refrigerante gigantes; os capangas, ~22×30.
+// Jimmy.sprite('normal' | 'super')  → canvas. Os pés ficam no meio da base (FEET).
 // Jimmy.draw(ctx, x, y, { form, t, fall })   desenha com os pés em (x, y); fall de 0 a 1 = caindo
 // Jimmy.minion(tipo, quadro)          'fry' | 'cup', quadro 0 ou 1 (andar parado)
 const Jimmy = (() => {
-  const OUT = '#1E1826';
+  const K = 1.25;
+  const OUT = [30, 24, 38];
   const cache = {};
 
-  // contorno de 1 px em volta do que foi pintado: 70% de #1E1826 + 30% da cor vizinha (Apêndice E.1)
+  // ---------- luz e rampas (como em chars.js) ----------
+  const L = (() => { const v = [-0.5, -0.62, 0.6], m = Math.hypot(...v); return v.map(a => a / m); })();
+  const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+  const bay = (x, y) => (BAYER[((y & 3) << 2) | (x & 3)] + 0.5) / 16;
+  function tone(hex, t, x, y) {
+    const rp = Chars.ramp(hex);
+    t = t < 0 ? 0 : t > 1 ? 1 : t;
+    const f = t * (rp.length - 1);
+    let i = Math.floor(f);
+    const fr = Math.max(0, Math.min(1, (f - i - 0.5) * 2.4 + 0.5));
+    if (fr > bay(x, y)) i++;
+    const c = rp[Math.min(rp.length - 1, i)];
+    return 'rgb(' + c[0] + ',' + c[1] + ',' + c[2] + ')';
+  }
+  const shade = (nx, ny) => {
+    const nz = Math.sqrt(Math.max(0, 1 - nx * nx - ny * ny));
+    const d = nx * L[0] + ny * L[1] + nz * L[2] - L[2];
+    return 0.5 + d * (d > 0 ? 0.45 : 0.32);
+  };
+
+  // contorno de 1 px em volta do que foi pintado: a cor vizinha mais escura, escurecida
   function outline(cv) {
     const w = cv.width, h = cv.height, img = cv.cx.getImageData(0, 0, w, h), d = img.data;
     const src = new Uint8ClampedArray(d);
@@ -20,17 +43,17 @@ const Jimmy = (() => {
       for (let x = 0; x < w; x++) {
         const o = at(x, y);
         if (src[o + 3]) continue;
-        let best = -1, lum = 9;
+        let best = -1, lum = 1e9, lit = true;
         [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([dx, dy]) => {
           const n = at(x + dx, y + dy);
-          if (n < 0 || !src[n + 3] || src[n + 3] === 254) return;
+          if (n < 0 || !src[n + 3]) return;
+          if (dx < 0 || dy < 0) lit = false;
           const l = src[n] * 0.3 + src[n + 1] * 0.59 + src[n + 2] * 0.11;
-          if (l < lum * 255 || best < 0) { lum = l / 255; best = n; }
+          if (l < lum) { lum = l; best = n; }
         });
         if (best < 0) continue;
-        d[o] = Math.round(0x1E * 0.7 + src[best] * 0.3);
-        d[o + 1] = Math.round(0x18 * 0.7 + src[best + 1] * 0.3);
-        d[o + 2] = Math.round(0x26 * 0.7 + src[best + 2] * 0.3);
+        const k = lit ? 0.5 : 0.64;
+        for (let i = 0; i < 3; i++) d[o + i] = Math.round(src[best + i] + (OUT[i] - src[best + i]) * k);
         d[o + 3] = 255;
       }
     }
@@ -38,75 +61,82 @@ const Jimmy = (() => {
     return cv;
   }
 
-  // elipse cheia, linha a linha
-  function ell(c, x, y, w, h, color) {
-    c.fillStyle = color;
-    for (let j = 0; j < h; j++) {
-      const dy = (j + 0.5 - h / 2) / (h / 2);
-      const half = Math.sqrt(Math.max(0, 1 - dy * dy)) * w / 2;
-      const x0 = Math.round(x + w / 2 - half), x1 = Math.round(x + w / 2 + half);
-      if (x1 > x0) c.fillRect(x0, y + j, x1 - x0, 1);
+  // ---------- formas sombreadas ----------
+  // elipse como esfera (cond(nx, ny) limita a parte desenhada; bias clareia ou escurece)
+  function ball(c, x, y, w, h, hex, bias = 0, cond = null) {
+    x = Math.round(x); y = Math.round(y); w = Math.round(w); h = Math.round(h);
+    for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+      const nx = (i + 0.5 - w / 2) / (w / 2), ny = (j + 0.5 - h / 2) / (h / 2);
+      if (nx * nx + ny * ny > 1 || (cond && !cond(nx, ny))) continue;
+      c.fillStyle = tone(hex, shade(nx * 0.95, ny * 0.95) + bias, x + i, y + j);
+      c.fillRect(x + i, y + j, 1, 1);
     }
   }
+  // retângulo como cilindro em pé (luz da esquerda)
+  function cyl(c, x, y, w, h, hex, bias = 0) {
+    x = Math.round(x); y = Math.round(y); w = Math.max(1, Math.round(w)); h = Math.max(1, Math.round(h));
+    for (let i = 0; i < w; i++) {
+      const nx = w > 1 ? (i + 0.5) / w * 2 - 1 : 0;
+      for (let j = 0; j < h; j++) {
+        c.fillStyle = tone(hex, shade(nx * 0.9, -0.15) + bias - (j / h) * 0.08, x + i, y + j);
+        c.fillRect(x + i, y + j, 1, 1);
+      }
+    }
+  }
+  const rect = (c, x, y, w, h, col) => { c.fillStyle = col; c.fillRect(Math.round(x), Math.round(y), Math.max(1, Math.round(w)), Math.max(1, Math.round(h))); };
 
-  // o hambúrguer em escala s (1 = ~64 px de altura), com o canto do corpo em (ox, oy)
+  // o hambúrguer em escala s (1 = ~64 px de altura, o tamanho da V1), com o canto do corpo em (ox, oy)
   function burger(c, s, ox, oy, t) {
-    const R = (x, y, w, h, col) => { c.fillStyle = col; c.fillRect(Math.round(ox + x * s), Math.round(oy + y * s), Math.max(1, Math.round(w * s)), Math.max(1, Math.round(h * s))); };
-    const E = (x, y, w, h, col) => ell(c, Math.round(ox + x * s), Math.round(oy + y * s), Math.round(w * s), Math.round(h * s), col);
+    const X = v => ox + v * s, Y = v => oy + v * s;
+    const R = (x, y, w, h, col) => rect(c, X(x), Y(y), w * s, h * s, col);
+    const E = (x, y, w, h, hex, bias, cond) => ball(c, X(x), Y(y), w * s, h * s, hex, bias, cond);
+    const C = (x, y, w, h, hex, bias) => cyl(c, X(x), Y(y), w * s, h * s, hex, bias);
 
     // pernas e tênis vermelhos
-    R(19, 54, 5, 7, '#C98A4A'); R(36, 54, 5, 7, '#C98A4A');
-    R(16, 60, 10, 4, '#D8283C'); R(34, 60, 10, 4, '#D8283C');
-    R(16, 63, 10, 1, '#F4F0E8'); R(34, 63, 10, 1, '#F4F0E8');
-    R(17, 60, 4, 1, '#F2687A'); R(35, 60, 4, 1, '#F2687A');
+    C(19, 53, 5, 8, '#C98A4A'); C(36, 53, 5, 8, '#C98A4A', -0.05);
+    E(15, 59, 12, 6, '#D8283C'); E(33, 59, 12, 6, '#D8283C', -0.05);
+    R(15.5, 63, 11, 1, '#F4F0E8'); R(33.5, 63, 11, 1, '#E4DED4');
 
     // pão de baixo
-    E(4, 44, 52, 13, '#B8742C');
-    E(4, 43, 52, 11, '#D8913E');
-    R(10, 45, 18, 1, '#E8AC5E');
-
+    E(3, 42, 54, 15, '#D8913E', -0.05);
     // carne, com marcas da grelha
-    E(2, 36, 56, 12, '#5A3020');
-    E(3, 35, 54, 10, '#7A4228');
-    for (let k = 0; k < 6; k++) R(9 + k * 8, 39 + (k % 2), 4, 1, '#4A2614');
-    R(8, 36, 20, 1, '#9A5A36');
-
+    E(1, 34, 58, 14, '#7A4228');
+    for (let k = 0; k < 6; k++) R(9 + k * 8, 39 + (k % 2), 4, 1, '#3E1E10');
     // queijo derretendo, com pingos
-    R(4, 32, 52, 5, '#F2C42E');
-    R(4, 32, 52, 1, '#FFE07A');
-    [[8, 3], [17, 5], [29, 2], [41, 6], [50, 3]].forEach(([x, h]) => { R(x, 37, 3, h, '#F2C42E'); R(x + 1, 37 + h, 1, 1, '#E8A82A'); });
-
+    C(3, 31, 54, 5, '#F2C42E', 0.05);
+    R(3, 31, 54, 1, '#FFE89A');
+    [[8, 3], [17, 5], [29, 2], [41, 6], [50, 3]].forEach(([x, h]) => {
+      C(x, 36, 3, h, '#F2C42E');
+      E(x - 0.3, 35 + h, 3.6, 3, '#F2C42E');
+    });
     // alface ondulada
-    for (let x = 1; x < 59; x++) {
-      const y = 29 + Math.round(Math.sin(x * 0.9) * 1.2);
-      R(x, y, 1, 4, x % 5 === 0 ? '#3E8A2A' : '#5DAA3A');
-      if (x % 3 === 0) R(x, y, 1, 1, '#8AD060');
+    for (let x = 0; x < 60; x++) {
+      const y = 28 + Math.round(Math.sin(x * 0.9) * 1.2);
+      C(x, y, 1, 4, x % 5 === 0 ? '#4A962E' : '#5DAA3A', 0.08 - Math.abs(x - 30) / 120);
     }
-
     // pão de cima, com brilho e gergelim
-    E(0, 2, 60, 30, '#B87830');
-    E(1, 1, 58, 28, '#E0A048');
-    E(6, 3, 30, 12, '#F2C070');
-    R(12, 5, 8, 2, '#FCE0A0');
+    E(0, 1, 60, 31, '#E0A048', 0.02, (nx, ny) => ny < 0.62);
+    E(8, 3, 22, 9, '#F4C878', 0.12);
     [[14, 6], [26, 4], [38, 6], [47, 10], [20, 11], [33, 10], [8, 13], [42, 3], [51, 15]].forEach(([x, y]) => {
-      R(x, y, 3, 2, '#FFF4DA'); R(x + 1, y + 2, 2, 1, '#C88A3A');
+      E(x, y, 3.6, 2.6, '#FFF4DA', 0.1);
+      R(x + 1, y + 2.3, 2, 0.8, '#B87A34');
     });
 
     // olhos zangados (piscam de vez em quando)
     const blink = t !== undefined && (t % 4) > 3.85;
     [[17, 14], [35, 14]].forEach(([x, y], i) => {
       if (blink) { R(x, y + 4, 9, 2, '#3A2016'); return; }
-      E(x, y, 9, 9, '#FFFFFF');
-      R(x + (i ? 2 : 3), y + 4, 3, 4, '#1E1826');
-      R(x + (i ? 2 : 3), y + 4, 1, 1, '#FFFFFF');
+      E(x, y, 9, 9, '#FFFFFF', 0.15);
+      R(x + (i ? 2 : 3), y + 3.5, 3, 4.5, '#1E1826');
+      R(x + (i ? 2 : 3), y + 4, 1.2, 1.2, '#FFFFFF');
     });
     // sobrancelhas
     R(16, 11, 4, 2, '#4A2614'); R(19, 12, 4, 2, '#4A2614'); R(22, 13, 4, 2, '#4A2614');
     R(43, 11, 4, 2, '#4A2614'); R(40, 12, 4, 2, '#4A2614'); R(37, 13, 4, 2, '#4A2614');
 
     // bigode: ketchup de um lado, mostarda do outro, com as pontas enroladas
-    R(19, 23, 11, 3, '#D8443A'); R(15, 22, 5, 2, '#D8443A'); R(13, 20, 3, 3, '#D8443A'); R(20, 23, 6, 1, '#F07A6A');
-    R(30, 23, 11, 3, '#F2C42E'); R(40, 22, 5, 2, '#F2C42E'); R(44, 20, 3, 3, '#F2C42E'); R(31, 23, 6, 1, '#FFE07A');
+    E(18, 22, 13, 5, '#D8443A'); E(13, 19.5, 6, 5, '#D8443A', -0.05);
+    E(29, 22, 13, 5, '#F2C42E'); E(41, 19.5, 6, 5, '#F2C42E', -0.05);
     // sorriso maroto
     R(22, 27, 16, 2, '#3A1610');
     R(24, 27, 3, 1, '#FFFFFF'); R(29, 27, 3, 1, '#FFFFFF'); R(34, 27, 3, 1, '#FFFFFF');
@@ -115,110 +145,111 @@ const Jimmy = (() => {
     for (let x = 10; x < 50; x++) {
       const y = 38 + Math.round(Math.sin((x - 10) / 40 * Math.PI) * 7);
       R(x, y, 1, 1, x % 3 ? '#F2C14E' : '#B8862A');
+      if (x % 3 === 1) R(x, y, 1, 0.6, '#FFF0B0');
     }
-    E(26, 43, 9, 9, '#C88A3A');
-    E(26, 43, 9, 7, '#F07AA8');
-    R(29, 46, 3, 2, '#7A4228');
-    R(27, 44, 1, 1, '#FFFFFF'); R(33, 45, 1, 1, '#5DD0F0'); R(28, 49, 1, 1, '#F2E040');
+    E(25.5, 42.5, 10, 10, '#C88A3A');
+    E(25.5, 42.5, 10, 8, '#F07AA8', 0.05);
+    E(28.5, 45.5, 4, 3, '#5A3020', -0.2);
+    R(27, 44, 1, 1, '#FFFFFF'); R(33, 45, 1, 1, '#5DD0F0'); R(28, 49, 1, 1, '#F2E040'); R(31, 43, 1, 1, '#F2E040');
 
     // braços (luvas brancas)
-    R(-4, 38, 6, 3, '#C98A4A'); R(-7, 39, 4, 4, '#F4F0E8');
-    R(58, 36, 5, 3, '#C98A4A');
+    C(-4, 37, 6, 3, '#C98A4A'); E(-8, 37.5, 5.5, 5.5, '#F4F0E8');
+    C(58, 35, 5, 3, '#C98A4A', -0.05);
   }
 
-  // copo de refrigerante (o cetro): vermelho e branco, tampa e canudo
+  // copo de refrigerante (o cetro): vermelho e branco, tampa e canudo (x, y, w, h em pixels)
   function cup(c, x, y, w, h) {
-    const R = (a, b, ww, hh, col) => { c.fillStyle = col; c.fillRect(Math.round(x + a), Math.round(y + b), Math.round(ww), Math.round(hh)); };
-    R(w * 0.55, -h * 0.35, Math.max(2, w * 0.14), h * 0.4, '#F4F0E8');
-    R(w * 0.55, -h * 0.35, Math.max(1, w * 0.06), h * 0.4, '#D8443A');
-    R(-1, 0, w + 2, Math.max(2, h * 0.07), '#E8ECF2');
+    cyl(c, x + w * 0.55, y - h * 0.35, Math.max(2, w * 0.14), h * 0.4, '#F4F0E8');
+    rect(c, x + w * 0.55, y - h * 0.35, Math.max(1, w * 0.06), h * 0.4, '#D8443A');
+    ball(c, x - 1, y - Math.max(2, h * 0.05), w + 2, Math.max(3, h * 0.12), '#E8ECF2', 0.05);
+    const top = y + Math.max(2, h * 0.05);
     for (let j = 0; j < h; j++) {
-      const k = j / h, inset = Math.round(k * w * 0.18);
-      R(inset, Math.max(2, h * 0.07) + j, w - inset * 2, 1, (Math.floor(j / (h / 6)) % 2) ? '#F4F0E8' : '#D8443A');
+      const inset = Math.round((j / h) * w * 0.18), ww = w - inset * 2;
+      const band = (Math.floor(j / (h / 6)) % 2) ? '#F4F0E8' : '#D8443A';
+      for (let i = 0; i < ww; i++) {
+        const nx = (i + 0.5) / ww * 2 - 1;
+        c.fillStyle = tone(band, shade(nx * 0.9, -0.1) - (j / h) * 0.06, Math.round(x + inset + i), Math.round(top + j));
+        c.fillRect(Math.round(x + inset + i), Math.round(top + j), 1, 1);
+      }
     }
-    R(w * 0.2, h * 0.3, Math.max(1, w * 0.12), h * 0.5, '#F2E0E0');
   }
 
-  // caixa de batatas fritas
+  // caixa de batatas fritas (x, y, w, h em pixels)
   function fries(c, x, y, w, h) {
-    const R = (a, b, ww, hh, col) => { c.fillStyle = col; c.fillRect(Math.round(x + a), Math.round(y + b), Math.max(1, Math.round(ww)), Math.max(1, Math.round(hh))); };
-    const n = Math.max(5, Math.round(w / 3));
+    const n = Math.max(5, Math.round(w / 3.5));
     for (let i = 0; i < n; i++) {
-      const fx = w * 0.08 + i * (w * 0.84 / n), fh = h * (0.45 + ((i * 7) % 5) * 0.06);
-      R(fx, h * 0.45 - fh, Math.max(2, w / n - 1), fh, i % 2 ? '#F2C42E' : '#FFD84A');
-      R(fx, h * 0.45 - fh, 1, Math.max(1, fh * 0.3), '#FFF0A0');
+      const fx = x + w * 0.08 + i * (w * 0.84 / n), fh = h * (0.45 + ((i * 7) % 5) * 0.06);
+      cyl(c, fx, y + h * 0.45 - fh, Math.max(2, w / n - 1), fh, i % 2 ? '#F2C42E' : '#FFD84A', 0.05);
     }
     for (let j = 0; j < h * 0.6; j++) {
-      const inset = Math.round((1 - j / (h * 0.6)) * w * 0.1);
-      R(inset, h * 0.4 + j, w - inset * 2, 1, '#D8283C');
+      const inset = Math.round((1 - j / (h * 0.6)) * w * 0.1), ww = Math.round(w - inset * 2);
+      for (let i = 0; i < ww; i++) {
+        const nx = (i + 0.5) / ww * 2 - 1;
+        c.fillStyle = tone('#D8283C', shade(nx * 0.9, -0.1) - j / h * 0.1, Math.round(x + inset + i), Math.round(y + h * 0.4 + j));
+        c.fillRect(Math.round(x + inset + i), Math.round(y + h * 0.4 + j), 1, 1);
+      }
     }
-    R(w * 0.3, h * 0.6, w * 0.4, Math.max(2, h * 0.12), '#F2C14E');
+    ball(c, x + w * 0.3, y + h * 0.58, w * 0.4, Math.max(3, h * 0.16), '#F2C14E', 0.05);
   }
 
-  function build(form) {
+  function art(form, t) {
     if (form === 'super') {
-      const cv = Gfx.canvas(140, 116);
-      burger(cv.cx, 1.5, 26, 16, 0);
-      fries(cv.cx, 2, 44, 26, 40);        // batata gigante na mão esquerda
-      cup(cv.cx, 118, 34, 20, 52);         // refrigerante gigante na direita
+      const cv = Gfx.canvas(176, 146);
+      burger(cv.cx, 1.5 * K, 26 * K, 16 * K, t);
+      fries(cv.cx, 2 * K, 44 * K, 26 * K, 40 * K);        // batata gigante na mão esquerda
+      cup(cv.cx, 118 * K, 34 * K, 20 * K, 52 * K);         // refrigerante gigante na direita
       return outline(cv);
     }
-    const cv = Gfx.canvas(92, 76);
-    burger(cv.cx, 1, 14, 10, 0);
-    cup(cv.cx, 76, 28, 13, 34);            // o cetro
+    const cv = Gfx.canvas(116, 96);
+    burger(cv.cx, K, 14 * K, 10 * K, t);
+    cup(cv.cx, 76 * K, 28 * K, 13 * K, 34 * K);            // o cetro
     return outline(cv);
   }
 
-  // versão com os olhos piscando (quadro separado, para não redesenhar sempre)
-  function buildBlink(form) {
-    const cv = form === 'super' ? Gfx.canvas(140, 116) : Gfx.canvas(92, 76);
-    if (form === 'super') { burger(cv.cx, 1.5, 26, 16, 3.9); fries(cv.cx, 2, 44, 26, 40); cup(cv.cx, 118, 34, 20, 52); }
-    else { burger(cv.cx, 1, 14, 10, 3.9); cup(cv.cx, 76, 28, 13, 34); }
-    return outline(cv);
-  }
+  const FEET = { normal: [55, 93], super: [89, 140] };
 
-  const FEET = { normal: [44, 74], super: [71, 112] };
-
+  // a versão com os olhos piscando é um quadro separado, para não redesenhar sempre
   function sprite(form = 'normal', blink = false) {
     const key = form + (blink ? '|b' : '');
-    return cache[key] || (cache[key] = blink ? buildBlink(form) : build(form));
+    return cache[key] || (cache[key] = art(form, blink ? 3.9 : 0));
   }
 
   function draw(ctx, x, y, o = {}) {
     const form = o.form || 'normal', t = o.t || 0;
     const img = sprite(form, (t % 4) > 3.85);
     const [fx, fy] = FEET[form];
-    const bob = Math.round(Math.sin(t * 2.2) * 1);
-    Gfx.shadow(Math.round(x), Math.round(y), form === 'super' ? 70 : 48, form === 'super' ? 10 : 8);
+    const bob = Math.round(Math.sin(t * 2.2) * 1.25);
+    Gfx.shadow(Math.round(x), Math.round(y), form === 'super' ? 88 : 60, form === 'super' ? 12 : 10);
     if (o.fall) {
       // caindo de um jeito ridículo: tomba para trás e afunda
       ctx.save();
       ctx.translate(Math.round(x), Math.round(y));
       ctx.rotate(-o.fall * 1.45);
-      ctx.drawImage(img, -fx, -fy + Math.round(o.fall * 6));
+      ctx.drawImage(img, -fx, -fy + Math.round(o.fall * 7.5));
       ctx.restore();
       return;
     }
     ctx.drawImage(img, Math.round(x) - fx, Math.round(y) - fy + bob);
   }
 
-  // capangas: batata frita soldado e copo de refrigerante, 16×22, com olhos e pezinhos
+  // capangas: batata frita soldado e copo de refrigerante, ~22×30, com olhos e pezinhos
   function minion(type, frame = 0) {
     const key = 'm|' + type + '|' + frame;
     if (cache[key]) return cache[key];
-    const cv = Gfx.canvas(18, 24), c = cv.cx;
-    const R = (x, y, w, h, col) => { c.fillStyle = col; c.fillRect(x, y, w, h); };
+    const cv = Gfx.canvas(24, 32), c = cv.cx;
     if (type === 'fry') {
-      fries(c, 2, 1, 14, 20);
-      // capacete de soldado (tampinha verde) e olhos
-      R(4, 0, 10, 2, '#4E7A3A'); R(3, 2, 12, 1, '#3E6A2A');
+      fries(c, 2.5, 3, 18, 25);
+      // capacete de soldado (tampinha verde)
+      ball(c, 4, 0, 15, 6, '#4E7A3A', 0.05, (nx, ny) => ny < 0.3);
+      rect(c, 3, 3, 17, 1, '#2E5A22');
     } else {
-      cup(c, 3, 6, 12, 14);
+      cup(c, 4, 8, 15, 18);
     }
-    R(6, 13, 2, 2, '#FFFFFF'); R(10, 13, 2, 2, '#FFFFFF');
-    R(7, 14, 1, 1, '#1E1826'); R(11, 14, 1, 1, '#1E1826');
-    R(5, 12, 3, 1, '#3A1610'); R(10, 12, 3, 1, '#3A1610');
-    R(6 + frame, 21, 2, 2, '#3A2A30'); R(10 - frame, 21, 2, 2, '#3A2A30');
+    // olhos e pezinhos
+    ball(c, 7, 16, 4, 4, '#FFFFFF', 0.2); ball(c, 12.5, 16, 4, 4, '#FFFFFF', 0.2);
+    rect(c, 8.5, 17, 1.5, 2, '#1E1826'); rect(c, 14, 17, 1.5, 2, '#1E1826');
+    rect(c, 6.5, 14.5, 4, 1, '#3A1610'); rect(c, 12.5, 14.5, 4, 1, '#3A1610');
+    ball(c, 7 + frame * 1.5, 27, 4, 3, '#3A2A30'); ball(c, 13 - frame * 1.5, 27, 4, 3, '#3A2A30');
     return (cache[key] = outline(cv));
   }
 

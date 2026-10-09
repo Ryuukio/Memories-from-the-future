@@ -9,11 +9,13 @@
 //   ITEM → MYSTERIOUS RING → "Not here. Not yet." (não gasta o turno).
 //   Sem balas antes de vencer → COMBO MEAL, a Ellen desmaia, "Try again?" e tudo recomeça.
 // Os textos vêm de GAME_CONFIG.texts.battle.
-// V2: as caixas, o menu e os textos no tamanho novo (480×270); o fundo, o vilão, a Ellen e os efeitos
-// ainda são o desenho da V1, em coordenadas velhas (384×216), ampliado (Legacy.screen).
+// V2: as caixas, o menu, os textos, o vilão, os capangas, a Ellen e o Fabio no tamanho novo (480×270;
+// a Ellen e o Fabio de costas, com o sprite em 2×); o fundo e os efeitos (cheiro, tiro) ainda são o
+// desenho da V1, em coordenadas velhas (384×216), ampliado (Legacy.screen).
 const BattleState = (() => {
   const W = Display.W, H = Display.H, W0 = 384, H0 = 216;
   const ENEMY = { x: 288, y: 100 }, PLAYER = { x: 92, y: 162 };   // em coordenadas velhas
+  const K = Legacy.K;
   const T = () => GAME_CONFIG.texts.battle;
 
   let time, phase, intro, bullets, tempted, usedMounjaro, form, hp, hpShown;
@@ -200,35 +202,40 @@ const BattleState = (() => {
   }
 
   // ---------- desenho ----------
+  // a Ellen de costas, com o Fabio do lado (sprites da V2 em 2×, em coordenadas novas)
   function drawEllen(ctx, tremble) {
     const e = Chars.sprite('ELLEN_NOW', { dir: 'up' }), f = Chars.sprite('FABIO_NOW', { dir: 'up' });
-    const slide = phase === 'intro' ? Math.max(0, 1 - intro / 1.2) * -160 : 0;
-    const ex = PLAYER.x - 16 + slide + (tremble ? Math.round(Math.sin(time * 40)) : 0), ey = PLAYER.y - 62;
-    Gfx.shadow(PLAYER.x + slide, PLAYER.y - 1, 28, 6);
-    Gfx.shadow(PLAYER.x + 44 + slide, PLAYER.y + 1, 28, 6);
-    ctx.drawImage(f, 0, 0, 16, 32, PLAYER.x + 28 + slide, PLAYER.y - 60, 32, 64);
+    const SW = Chars.W, SH = Chars.H;
+    const slide = (phase === 'intro' ? Math.max(0, 1 - intro / 1.2) * -160 : 0) * K;
+    const ex = Math.round(PLAYER.x * K - SW + slide + (tremble ? Math.round(Math.sin(time * 40) * 1.25) : 0)), feet = Math.round((PLAYER.y + 2) * K);
+    const ey = feet - SH * 2 + 1;
+    Gfx.shadow(PLAYER.x * K + slide, feet - 1, 36, 8);
+    Gfx.shadow(PLAYER.x * K + 56 + slide, feet + 2, 36, 8);
+    ctx.drawImage(f, 0, 0, SW, SH, Math.round(PLAYER.x * K + 56 - SW + slide), feet + 3 - SH * 2 + 1, SW * 2, SH * 2);
     if (faint) {
       ctx.save();
-      ctx.translate(PLAYER.x + slide, PLAYER.y);
+      ctx.translate(Math.round(PLAYER.x * K + slide), feet);
       ctx.rotate(Math.min(1, faint) * Math.PI / 2);
-      ctx.drawImage(e, 0, 0, 16, 32, -16, -62, 32, 64);
+      ctx.drawImage(e, 0, 0, SW, SH, -SW, -SH * 2 + 1, SW * 2, SH * 2);
       ctx.restore();
     } else {
-      ctx.drawImage(e, 0, 0, 16, 32, ex, ey, 32, 64);
+      ctx.drawImage(e, 0, 0, SW, SH, ex, ey, SW * 2, SH * 2);
       // o revólver velho na mão direita
-      Gfx.rect(ex + 27, ey + 36, 6, 2, '#5E6470');
-      Gfx.rect(ex + 27, ey + 38, 2, 3, '#8A5A32');
+      Gfx.rect(ex + 39, ey + 60, 9, 3, '#5E6470');
+      Gfx.rect(ex + 39, ey + 60, 9, 1, '#8A909C');
+      Gfx.rect(ex + 39, ey + 63, 3, 4, '#8A5A32');
     }
   }
 
+  // o vilão e os capangas (desenho da V2, em coordenadas novas)
   function drawJimmy(ctx) {
     const slide = phase === 'intro' ? Math.max(0, 1 - intro / 1.2) * 180 : 0;
-    const x = ENEMY.x + slide - (form === 'super' ? 6 : 0), y = ENEMY.y + (form === 'super' ? 14 : 0);
+    const x = (ENEMY.x + slide - (form === 'super' ? 6 : 0)) * K, y = (ENEMY.y + (form === 'super' ? 14 : 0)) * K;
     // capangas dos lados
     if (!fall) {
-      ctx.drawImage(Jimmy.minion('fry', Math.floor(time * 3) % 2), x - 78, y - 22);
-      ctx.drawImage(Jimmy.minion('cup', Math.floor(time * 3 + 1) % 2), x + 60, y - 22);
-      ctx.drawImage(Jimmy.minion('fry', Math.floor(time * 3 + 1) % 2), x + 42, y - 14);
+      ctx.drawImage(Jimmy.minion('fry', Math.floor(time * 3) % 2), Math.round(x - 98), Math.round(y - 30));
+      ctx.drawImage(Jimmy.minion('cup', Math.floor(time * 3 + 1) % 2), Math.round(x + 75), Math.round(y - 30));
+      ctx.drawImage(Jimmy.minion('fry', Math.floor(time * 3 + 1) % 2), Math.round(x + 52), Math.round(y - 20));
     }
     Jimmy.draw(ctx, x, y, { form, t: time, fall: fall ? Math.min(1, fall) : 0 });
   }
@@ -319,14 +326,16 @@ const BattleState = (() => {
     render(ctx) {
       ctx.save();
       if (shake > 0) ctx.translate(Math.round(Math.sin(time * 70) * 3.75), Math.round(Math.cos(time * 51) * 2.5));
-      // o desenho da V1, em coordenadas velhas, ampliado
-      Legacy.screen(ctx, lc => {
-        lc.drawImage(bg, 0, 0);
-        drawJimmy(lc);
-        drawEllen(lc, tempted);
-        if (waves > 0) drawWaves(lc);
-        drawShot();
-      });
+      // o fundo é o desenho da V1, em coordenadas velhas, ampliado; os personagens já são os da V2
+      Legacy.screen(ctx, lc => lc.drawImage(bg, 0, 0));
+      drawJimmy(ctx);
+      drawEllen(ctx, tempted);
+      if (waves > 0 || shot) {
+        Legacy.screen(ctx, lc => {
+          if (waves > 0) drawWaves(lc);
+          drawShot();
+        });
+      }
       ctx.restore();
       if (phase !== 'intro' || intro > 1.1) { enemyBox(); playerBox(); }
       if (phase === 'menu') drawMenu();

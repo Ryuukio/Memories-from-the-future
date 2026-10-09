@@ -161,12 +161,14 @@
     }
   };
 
-  // o Big Jimmy Junk como objeto do cenário (aparece com [show:jimmy] ou [villainArrives])
+  // o Big Jimmy Junk como objeto do cenário (aparece com [show:jimmy] ou [villainArrives]). Já é o
+  // desenho da V2: liveNew desenha fora da camada velha, em coordenadas novas (os pés no mesmo ponto
+  // do cenário, × 1,25)
   props.jimmy = {
     size: () => [96, 80],
     base: 74,
-    live(ctx, p, world) {
-      Jimmy.draw(ctx, p.x + 48, p.y + 74, { t: world.t, form: p.form || 'normal' });
+    liveNew(ctx, p, world) {
+      Jimmy.draw(ctx, (p.x + 48) * Legacy.K, (p.y + 74) * Legacy.K, { t: world.t, form: p.form || 'normal' });
     },
     draw() {}
   };

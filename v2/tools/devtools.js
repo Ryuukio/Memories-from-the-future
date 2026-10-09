@@ -8,6 +8,8 @@
 //   __reload()                 recarrega os scripts sem cache e a página (carregue este arquivo de novo depois)
 //   __run(s)                   avança o jogo s segundos (passos de 1/60) e desenha
 //   __snap(x, y, w, h, escala) copia um pedaço da tela ampliado para um canvas fixo no canto (para o print)
+//   __lineup(roupas) / __poses(roupa)   as roupas lado a lado (frente, lado, costas, andando, sentada,
+//                              no chão) e todas as poses de uma roupa, para conferir os sprites (26×48)
 //   __open(códigos, cenário, sala, fase)   abre uma sala direto no cenário (sem a fala de entrada)
 //   __look(x, y)               põe a Ellen em (x, y) e a câmera nela
 //   __at(t)                    leva os vigias e quem anda ao tempo t do loop
@@ -248,18 +250,41 @@ window.__st = () => {
 window.__tp = (x, y) => { const s = StealthState.inspect(); s.ellen.x = x; s.ellen.y = y; s.fabio.x = x - 22.5; s.fabio.y = y; Camera.follow(x, s.room.w); };
 'devtools ok';
 
-// fileira de roupas para conferir os sprites: cada roupa de frente, de lado, de costas e sentada
-window.__lineup = (ids, bg = '#5A6A7A') => {
-  const c = Gfx.ctx;
+// fileira de roupas para conferir os sprites (V2: 26×48): cada roupa de frente, de lado, de costas,
+// andando, sentada de lado e sentada no chão. poses: lista de { pose, dir, frame, head } (opcional)
+const __LINEUP_POSES = [{ dir: 'down' }, { dir: 'right' }, { dir: 'up' }, { dir: 'right', frame: 0 }, { pose: 'sit', dir: 'right' }, { pose: 'floor', dir: 'down' }];
+window.__lineup = (ids, bg = '#5A6A7A', poses = __LINEUP_POSES) => {
+  const c = Gfx.ctx, W = Chars.W, H = Chars.H, bw = poses.length * (W + 1) + 6;
+  const cols = Math.max(1, Math.floor((Display.W - 4) / bw));
   Gfx.rect(0, 0, Display.W, Display.H, bg);
   ids.forEach((id, i) => {
-    const x = 6 + (i % 6) * 63, y = 4 + Math.floor(i / 6) * 70;
-    [['down', -1], ['right', -1], ['up', -1]].forEach(([dir], k) => c.drawImage(Chars.sprite(id, { dir }), x + k * 15, y));
-    c.drawImage(Chars.sprite(id, { pose: 'sit', dir: 'right' }), x + 45, y);
-    c.drawImage(Chars.sprite(id, { dir: 'right', frame: 0 }), x, y + 33);
-    c.drawImage(Chars.sprite(id, { pose: 'floor', dir: 'down' }), x + 15, y + 33);
-    Gfx.text(id.replace(/^(FABIO|ELLEN)_/, '$1 '), x, y + 62, '#FFFFFF');
+    const x = 4 + (i % cols) * bw, y = 2 + Math.floor(i / cols) * (H + 11);
+    poses.forEach((o, k) => c.drawImage(Chars.sprite(id, o), x + k * (W + 1), y));
+    Gfx.text(id.replace(/^(FABIO|ELLEN)_/, '$1 '), x, y + H, '#FFFFFF');
   });
+  return 'ok';
+};
+// todas as poses de uma roupa: andando nas 4 direções (4 quadros), sentado e no chão nas 4,
+// deitado, nadando, foto, olhos fechados
+window.__poses = (id, bg = '#5A6A7A') => {
+  const c = Gfx.ctx, W = Chars.W, H = Chars.H;
+  Gfx.rect(0, 0, Display.W, Display.H, bg);
+  const dirs = ['down', 'right', 'up', 'left'];
+  dirs.forEach((dir, j) => [-1, 0, 1, 2, 3].forEach((f, i) => c.drawImage(Chars.sprite(id, { dir, frame: f }), 2 + i * (W + 1), 2 + j * (H + 1))));
+  dirs.forEach((dir, j) => c.drawImage(Chars.sprite(id, { pose: 'sit', dir }), 140 + j * (W + 1), 2));
+  dirs.forEach((dir, j) => c.drawImage(Chars.sprite(id, { pose: 'floor', dir }), 140 + j * (W + 1), 51));
+  c.drawImage(Chars.sprite(id, { pose: 'sit', dir: 'right', frame: 1 }), 140, 100);
+  c.drawImage(Chars.sprite(id, { pose: 'sit', dir: 'right', head: 'down' }), 167, 100);
+  c.drawImage(Chars.sprite(id, { pose: 'photo' }), 194, 100);
+  c.drawImage(Chars.sprite(id, { dir: 'down', eyes: 'closed' }), 221, 100);
+  c.drawImage(Chars.sprite(id, { pose: 'lie', dir: 'left' }), 250, 2);
+  c.drawImage(Chars.sprite(id, { pose: 'lie', dir: 'right', head: 'up', eyes: 'closed' }), 250, 30);
+  c.drawImage(Chars.sprite(id, { pose: 'lie', dir: 'left', cover: '#1E2A4A', eyes: 'closed' }), 250, 58);
+  c.drawImage(Chars.sprite(id, { pose: 'swim', dir: 'right', frame: 0 }), 300, 2);
+  c.drawImage(Chars.sprite(id, { pose: 'swim', dir: 'left', frame: 2 }), 300, 30);
+  c.drawImage(Chars.sprite(id, { pose: 'swim', dir: 'up', frame: 1 }), 350, 2);
+  c.drawImage(Chars.sprite(id, { pose: 'swim', dir: 'down', frame: 3 }), 377, 2);
+  Gfx.text(id, 250, 150, '#FFFFFF');
   return 'ok';
 };
 

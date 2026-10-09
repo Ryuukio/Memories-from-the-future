@@ -1,8 +1,8 @@
 // Tela final (SPEC, seções 4 e 11.10): a escada da livraria subindo para a luz do segundo andar,
 // a Ellen e o Fabio do presente de mãos dadas no pé da escada, corações subindo e a mensagem:
 // "YOU WON." · "Now... go to the second floor." (textos do config). Fica parada até o fim.
-// V2: os textos no tamanho novo; a escada, os corações e os dois ainda são o desenho da V1, em
-// coordenadas velhas (384×216), ampliado (Legacy.screen).
+// V2: os textos e os dois (sprites da V2 em 2×) no tamanho novo; a escada e os corações ainda são o
+// desenho da V1, em coordenadas velhas (384×216), ampliado (Legacy.screen).
 const EndingState = (() => {
   const W = 384, H = 216;   // o desenho da V1
   let t = 0, bg = null;
@@ -37,6 +37,7 @@ const EndingState = (() => {
 
     render(ctx) {
       Legacy.screen(ctx, art);
+      couple(ctx);
       // a mensagem
       const e2 = GAME_CONFIG.texts.ending, cx = Display.W / 2;
       const fade = Math.min(1, t / 1.5);
@@ -61,13 +62,20 @@ const EndingState = (() => {
       });
     }
     ctx.globalAlpha = 1;
-    // os dois de costas, no pé da escada, de mãos dadas
+  }
+
+  // os dois de costas, no pé da escada, de mãos dadas (sprites da V2 em 2×, em coordenadas novas)
+  function couple(ctx) {
     const e = Chars.sprite('ELLEN_NOW', { dir: 'up' }), f = Chars.sprite('FABIO_NOW', { dir: 'up' });
-    Gfx.shadow(W / 2 - 12, 207, 24, 6);
-    Gfx.shadow(W / 2 + 14, 207, 24, 6);
-    ctx.drawImage(e, 0, 0, 16, 32, W / 2 - 28, 145, 32, 64);
-    ctx.drawImage(f, 0, 0, 16, 32, W / 2 - 2, 145, 32, 64);
-    Gfx.rect(W / 2 - 1, 182, 4, 3, '#F6D7C6');
+    const SW = Chars.W, SH = Chars.H, cx = Display.W / 2, feet = 262, top = feet - SH * 2 + 1;
+    Gfx.shadow(cx - 20, feet - 1, 36, 8);
+    Gfx.shadow(cx + 20, feet - 1, 36, 8);
+    ctx.drawImage(e, 0, 0, SW, SH, cx - 20 - SW, top, SW * 2, SH * 2);
+    ctx.drawImage(f, 0, 0, SW, SH, cx + 20 - SW, top, SW * 2, SH * 2);
+    // as mãos dadas, entre os dois
+    Gfx.rect(cx - 4, top + 62, 8, 4, '#F6D7C6');
+    Gfx.rect(cx - 4, top + 65, 8, 1, '#E2B19F');
+    Gfx.rect(cx + 1, top + 62, 4, 4, '#D19A72');
   }
 })();
 

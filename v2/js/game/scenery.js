@@ -11,6 +11,8 @@
 //   layer            'back' = pintado no fundo (parede, banco); 'sorted' (padrão) = ordenado pela base
 //   draw(c, p)       pinta no canvas c, a partir de (0, 0)
 //   live(ctx, p, world, img)   opcional: desenha a cada quadro, no lugar da imagem pronta (baú, porta)
+//   liveNew(ctx, p, world)     V2: como o live, mas já no desenho novo, em coordenadas novas (fora da
+//                              camada velha; p continua em coordenadas velhas). Ex.: o Big Jimmy Junk
 //   fx(ctx, p, world)          opcional: animação por cima (fxLayer 'top') ou no chão ('ground')
 // }
 // world = { t: tempo em segundos, ellen: { x, y } }. Coordenadas do mundo (a sala inteira).

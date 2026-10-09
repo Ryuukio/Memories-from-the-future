@@ -1,7 +1,8 @@
 // Sala de teste (etapa 1): duas telas lado a lado para testar loop, entrada, câmera, colisão,
 // diálogo, pausa, salvamento e modo de teste. Fale com o Fabio (Espaço) para testar a caixa de diálogo.
 // V2: a sala continua nas medidas da V1 (coordenadas velhas, tiles de 16 px) e é desenhada ampliada
-// (Legacy.world); a velocidade do config (já × 1,25) volta para a medida velha.
+// (Legacy.world); a velocidade do config (já × 1,25) volta para a medida velha. A Ellen e o Fabio já
+// são os sprites da V2, desenhados em coordenadas novas.
 const TestRoomState = (() => {
   const T = 16, COLS = 48, ROWS = 12, TOP = Hud.H, K = Legacy.K;
   const ROOM_W = COLS * T, ROOM_H = ROWS * T;
@@ -187,10 +188,10 @@ const TestRoomState = (() => {
       ctx.translate(-Camera.x, TOP);
       Legacy.world(ctx, Camera.x, lc => {
         lc.drawImage(bg, 0, 0);
-        actors.forEach(({ e }) => Gfx.shadow(e.x, e.y - 1, 12, 4));
-        actors.forEach(({ e, img }) => Gfx.draw(img, e.x - 8, e.y - 31));
         if (Debug.flags.boxes) drawBoxes();
       });
+      // os dois já são os sprites da V2, em coordenadas novas
+      actors.forEach(({ e, img }) => Chars.draw(ctx, img, e.x * K, e.y * K));
       ctx.restore();
       Hud.draw(0, Hud.today(), 'Test room', 0);
     },
