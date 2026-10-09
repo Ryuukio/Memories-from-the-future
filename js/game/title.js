@@ -1,9 +1,9 @@
-// Tela de título: "MEMORIES FROM THE FUTURE", "a game by Fabio, for Ellen", "Press Space".
-// Com jogo salvo, mostra o menu Continue / New game.
+// Tela de título: "MEMORIES FROM THE FUTURE", "a game by Fabio, for Ellen" e uma opção só,
+// "Start", que começa o jogo do início (o Fabio pediu para tirar o Continue).
 const TitleState = (() => {
   const W = Display.W, H = Display.H, HORIZON = 140;
   const HEART = ['.##.##.', '#######', '#######', '.#####.', '..###..', '...#...'];
-  let t = 0, save = null, menu = null, sel = 0;
+  let t = 0;
   let sky = null, stars = null;
 
   function build() {
@@ -36,24 +36,12 @@ const TitleState = (() => {
     enter() {
       if (!sky) build();
       t = 0;
-      save = Save.load();
-      menu = save ? [GAME_CONFIG.title.continue, GAME_CONFIG.title.newGame] : null;
-      sel = 0;
       Sound.music('title');
     },
 
     update(dt) {
       t += dt;
-      if (!menu) {
-        if (Input.pressed('confirm')) { Sound.sfx('confirm'); Flow.newGame(); }
-        return;
-      }
-      if (Input.pressed('up') || Input.pressed('down')) { sel = 1 - sel; Sound.sfx('move'); }
-      if (Input.pressed('confirm')) {
-        Sound.sfx('confirm');
-        if (sel === 0) Flow.continueGame(save);
-        else Flow.newGame();
-      }
+      if (Input.pressed('confirm')) { Sound.sfx('confirm'); Flow.newGame(); }
     },
 
     render(ctx) {
@@ -74,15 +62,8 @@ const TitleState = (() => {
       Gfx.draw(Chars.sprite('FABIO_NOW', { dir: 'left' }), cx + 3, feet - 31);
       heart(cx - 3, 112 + Math.round(Math.sin(t * 2) * 1.5));
 
-      if (menu) {
-        menu.forEach((label, i) => {
-          const y = 172 + i * 13, on = i === sel;
-          Gfx.text(label, cx, y, on ? '#FFF4DA' : '#7F74BC', { align: 'center', shadow: '#07060E' });
-          if (on) Gfx.text('>', cx - Gfx.textWidth(label) / 2 - 10, y, '#F2C14E');
-        });
-      } else if (Math.floor(t * 1.6) % 2 === 0) {
-        Gfx.text(cfg.press, cx, 180, '#FFF4DA', { align: 'center', shadow: '#07060E' });
-      }
+      Gfx.text(cfg.start, cx, 178, '#FFF4DA', { align: 'center', shadow: '#07060E' });
+      if (Math.floor(t * 1.6) % 2 === 0) Gfx.text('>', cx - Gfx.textWidth(cfg.start) / 2 - 10, 178, '#F2C14E');
     },
 
     skip() { Flow.newGame(); }

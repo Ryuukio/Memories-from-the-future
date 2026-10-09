@@ -139,7 +139,7 @@ const Flow = {
     }));
   },
 
-  // entra na sala que contém o cenário, começando por ele (continuar e modo de teste)
+  // entra na sala que contém o cenário, começando por ele (modo de teste)
   startScene(code) {
     for (const st of GAME_CONFIG.stages) {
       const rooms = this.rooms(st.id);
@@ -170,18 +170,6 @@ const Flow = {
     Save.clear();
     this.memory = 0;
     this.prologue();
-  },
-
-  continueGame(save) {
-    this.memory = save.memory || 0;
-    const stage = save.stage || 1;
-    if (save.scene === 'PROLOGUE') this.prologue();
-    else if (save.scene === 'SHOP') this.shop();
-    else if (save.scene === 'BATTLE') this.battle();
-    else if (save.scene === 'ENDING') this.afterBattle();
-    else if (save.scene === 'CHEST') this.chestRoom(stage);
-    else if (save.scene === 'MACHINE') this.machine(stage);
-    else if (!this.startScene(save.scene)) this.startStage(stage);
   },
 
   // a Ellen saiu pela última passagem da sala ou pela porta do corredor

@@ -16,9 +16,7 @@ window.GAME_CONFIG = {
   title: {
     name: "MEMORIES FROM THE FUTURE",
     subtitle: "a game by Fabio, for Ellen",
-    press: "Press Space",
-    continue: "Continue",
-    newGame: "New game"
+    start: "Start"   // a única opção: começa o jogo do início (sem Continue)
   },
 
   pause: { title: "PAUSED", hint: "Press Esc to continue" },
